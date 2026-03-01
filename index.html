@@ -258,14 +258,18 @@ tr:hover td{background:rgba(245,166,35,.03);}
 <!-- ADMIN -->
 <div class="view" id="view-admin">
   <div class="card">
-    <div class="card-title green">👥 Kunder</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="card-title green" style="margin-bottom:0">👥 Kunder</div>
+      <button class="btn-eco" onclick="syncKunders()" style="font-size:0.8rem;padding:7px 14px">🔄 Synk fra e-conomic</button>
+    </div>
+    <div id="sync-kunder-status" style="font-size:0.82rem;color:var(--green);margin-bottom:8px;min-height:18px"></div>
     <div id="list-kunder"></div>
     <div class="g3" style="margin-top:14px">
       <div class="fg"><label>Kundenavn</label><input type="text" id="in-kunde-navn" placeholder="Fx Hansen Byg A/S"></div>
       <div class="fg"><label>Adresse</label><input type="text" id="in-kunde-adresse" placeholder="Fx Industrivej 12, Odense"></div>
       <div class="fg"><label>Kundenr. i e-conomic</label><input type="number" id="in-kunde-econr" placeholder="Fx 1001" min="1"></div>
     </div>
-    <button class="btn-sm" onclick="adminAdd('kunder')">+ Tilføj kunde</button>
+    <button class="btn-sm" onclick="adminAdd('kunder')">+ Tilføj kunde manuelt</button>
   </div>
   <div class="card">
     <div class="card-title green">🚛 Chauffører</div>
@@ -277,7 +281,11 @@ tr:hover td{background:rgba(245,166,35,.03);}
     <button class="btn-sm" onclick="adminAdd('chauffoerer')">+ Tilføj chauffør</button>
   </div>
   <div class="card">
-    <div class="card-title green">♻️ Affaldstyper</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="card-title green" style="margin-bottom:0">♻️ Affaldstyper</div>
+      <button class="btn-eco" onclick="syncVarer('affaldstyper')" style="font-size:0.8rem;padding:7px 14px">🔄 Synk varer fra e-conomic</button>
+    </div>
+    <div id="sync-aff-status" style="font-size:0.82rem;color:var(--green);margin-bottom:8px;min-height:18px"></div>
     <div id="list-affaldstyper"></div>
     <div class="g2" style="margin-top:14px">
       <div class="fg"><label>Navn</label><input type="text" id="in-aff-navn" placeholder="Fx Byggeaffald, blandet"></div>
@@ -290,7 +298,11 @@ tr:hover td{background:rgba(245,166,35,.03);}
     <button class="btn-sm" onclick="adminAdd('affaldstyper')">+ Tilføj affaldstype</button>
   </div>
   <div class="card">
-    <div class="card-title green">⬇️ Leveringstyper</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="card-title green" style="margin-bottom:0">⬇️ Leveringstyper</div>
+      <button class="btn-eco" onclick="syncVarer('leveringstyper')" style="font-size:0.8rem;padding:7px 14px">🔄 Synk varer fra e-conomic</button>
+    </div>
+    <div id="sync-lev-status" style="font-size:0.82rem;color:var(--green);margin-bottom:8px;min-height:18px"></div>
     <div id="list-leveringstyper"></div>
     <div class="g3" style="margin-top:14px">
       <div class="fg"><label>Materiale</label><input type="text" id="in-lev-navn" placeholder="Fx Grus, Sand, Stabilgrus"></div>
@@ -1372,6 +1384,93 @@ function renderAdminLists(){
   renderAdminList('kunder','list-kunder');renderAdminList('chauffoerer','list-chauffoerer');
   renderAdminList('affaldstyper','list-affaldstyper');renderAdminList('leveringstyper','list-leveringstyper');
   renderAdminList('anlaeg','list-anlaeg');renderAdminList('koeretoej','list-koeretoej');
+}
+
+async function syncKunders(){
+  var statusEl=document.getElementById('sync-kunder-status');
+  statusEl.textContent='Henter kunder fra e-conomic...';
+  var added=0; var updated=0;
+  try {
+    // Fetch all pages
+    var url='/customers?pagesize=100&skippages=0';
+    var alle=[];
+    while(url){
+      var data=await ecoGet(url);
+      if(!data||!data.collection)break;
+      alle=alle.concat(data.collection);
+      url=(data.pagination&&data.pagination.nextPage)?data.pagination.nextPage.replace('https://restapi.e-conomic.com',''):null;
+    }
+    for(var i=0;i<alle.length;i++){
+      var k=alle[i];
+      var navn=k.name||'';
+      var econr=k.customerNumber;
+      var adresse=(k.address||'')+(k.city?', '+k.city:'');
+      // Check if exists
+      var existing=adminData.kunder.find(function(x){return x.econr==econr;});
+      if(existing){
+        // Update
+        Object.assign(existing,{navn:navn,adresse:adresse,econr:econr});
+        if(existing.id) await sbUpdate('kunder',existing.id,{navn:navn,adresse:adresse,econr:econr});
+        updated++;
+      } else {
+        // Insert new
+        var item={navn:navn,adresse:adresse,econr:econr};
+        var res=await sbInsert('kunder',item);
+        if(res&&res[0])item.id=res[0].id;
+        adminData.kunder.push(item);
+        added++;
+      }
+    }
+    renderAdminLists();refreshSelects();
+    statusEl.textContent='✅ '+added+' tilføjet, '+updated+' opdateret fra e-conomic';
+  } catch(e){
+    statusEl.style.color='var(--red)';
+    statusEl.textContent='Fejl: '+e.message;
+  }
+}
+
+async function syncVarer(type){
+  var statusId=type==='affaldstyper'?'sync-aff-status':'sync-lev-status';
+  var statusEl=document.getElementById(statusId);
+  statusEl.style.color='var(--green)';
+  statusEl.textContent='Henter varer fra e-conomic...';
+  var added=0; var updated=0;
+  try {
+    var url='/products?pagesize=100&skippages=0';
+    var alle=[];
+    while(url){
+      var data=await ecoGet(url);
+      if(!data||!data.collection)break;
+      alle=alle.concat(data.collection);
+      url=(data.pagination&&data.pagination.nextPage)?data.pagination.nextPage.replace('https://restapi.e-conomic.com',''):null;
+    }
+    // Show picker dialog to let user choose which products go where
+    var lines=alle.map(function(p,i){return i+': '+p.productNumber+' – '+p.name+(p.salesPrice?' ('+p.salesPrice+' kr.)':'');}).join('\n');
+    var input=prompt('Varer fra e-conomic:\n'+lines+'\n\nIndtast numre adskilt med komma for de varer du vil tilføje til "'+type+'" (fx: 0,2,5)');
+    if(!input)return;
+    var valgte=input.split(',').map(function(x){return parseInt(x.trim());}).filter(function(x){return !isNaN(x);});
+    for(var j=0;j<valgte.length;j++){
+      var p=alle[valgte[j]];if(!p)continue;
+      var existing=adminData[type].find(function(x){return x.varenr==p.productNumber;});
+      var item={navn:p.name||'',pris:p.salesPrice||0,varenr:p.productNumber};
+      if(type==='affaldstyper')item.eak='';
+      if(existing){
+        Object.assign(existing,item);
+        if(existing.id)await sbUpdate(type,existing.id,item);
+        updated++;
+      } else {
+        var res=await sbInsert(type,item);
+        if(res&&res[0])item.id=res[0].id;
+        adminData[type].push(item);
+        added++;
+      }
+    }
+    renderAdminLists();refreshSelects();rebuildLaes();
+    statusEl.textContent='✅ '+added+' tilføjet, '+updated+' opdateret';
+  } catch(e){
+    statusEl.style.color='var(--red)';
+    statusEl.textContent='Fejl: '+e.message;
+  }
 }
 
 var adminFieldLabels={
