@@ -7,6 +7,32 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0f1117;--surface:#191c27;--surface2:#22263a;--border:#2e3354;--accent:#f5a623;--green:#3ecf8e;--blue:#818cf8;--red:#ff5c5c;--text:#eef0f8;--muted:#7b82a8;--r:12px;}
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;}
+#login-screen.hidden{display:none;}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:400px;}
+.login-logo{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--accent);text-align:center;margin-bottom:8px;}
+.login-logo span{color:var(--text);}
+.login-sub{text-align:center;color:var(--muted);font-size:0.88rem;margin-bottom:32px;}
+.login-error{color:var(--red);font-size:0.85rem;margin-top:10px;text-align:center;min-height:20px;}
+.btn-login{width:100%;padding:14px;background:var(--accent);color:#000;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-top:8px;}
+.btn-login:hover{background:#ffc04d;}
+.user-info{display:flex;align-items:center;gap:10px;font-size:0.85rem;color:var(--muted);}
+.user-info strong{color:var(--text);}
+.btn-logout{padding:6px 12px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.78rem;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn-logout:hover{border-color:var(--red);color:var(--red);}
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;}
+#login-screen.hidden{display:none;}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:400px;}
+.login-logo{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--accent);text-align:center;margin-bottom:8px;}
+.login-logo span{color:var(--text);}
+.login-sub{text-align:center;color:var(--muted);font-size:0.88rem;margin-bottom:32px;}
+.login-error{color:var(--red);font-size:0.85rem;margin-top:10px;text-align:center;min-height:20px;}
+.btn-login{width:100%;padding:14px;background:var(--accent);color:#000;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-top:8px;}
+.btn-login:hover{background:#ffc04d;}
+.user-info{display:flex;align-items:center;gap:10px;font-size:0.85rem;color:var(--muted);}
+.user-info strong{color:var(--text);}
+.btn-logout{padding:6px 12px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.78rem;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn-logout:hover{border-color:var(--red);color:var(--red);}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 nav{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
@@ -95,6 +121,36 @@ tr:hover td{background:rgba(245,166,35,.03);}
 </style>
 </head>
 <body>
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Vogn<span>Log</span></div>
+    <div class="login-sub">Kørselsstyring for vognmænd</div>
+    <div class="fg"><label>Email</label><input type="email" id="login-email" placeholder="din@email.dk" autocomplete="email"></div>
+    <div class="fg"><label>Adgangskode</label><input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"></div>
+    <button class="btn-login" onclick="doLogin()">Log ind →</button>
+    <div class="login-error" id="login-error"></div>
+    <div style="text-align:center;margin-top:20px">
+      <a href="#" onclick="doForgotPassword()" style="color:var(--muted);font-size:0.82rem;text-decoration:none">Glemt adgangskode?</a>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Vogn<span>Log</span></div>
+    <div class="login-sub">Kørselsstyring for vognmænd</div>
+    <div class="fg"><label>Email</label><input type="email" id="login-email" placeholder="din@email.dk" autocomplete="email"></div>
+    <div class="fg"><label>Adgangskode</label><input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"></div>
+    <button class="btn-login" onclick="doLogin()">Log ind →</button>
+    <div class="login-error" id="login-error"></div>
+    <div style="text-align:center;margin-top:20px">
+      <a href="#" onclick="doForgotPassword()" style="color:var(--muted);font-size:0.82rem;text-decoration:none">Glemt adgangskode?</a>
+    </div>
+  </div>
+</div>
+
 <nav>
   <div class="logo">Vogn<span>Log</span></div>
   <div class="tabs">
@@ -102,6 +158,14 @@ tr:hover td{background:rgba(245,166,35,.03);}
     <button class="tab" id="tab-office" onclick="showTab('office')">🏢 Kontor</button>
     <button class="tab" id="tab-waste" onclick="showTab('waste')">📋 Affaldsregister</button>
     <button class="tab" id="tab-admin" onclick="showTab('admin')">⚙️ Admin</button>
+  </div>
+  <div class="user-info">
+    <span id="nav-user-name"></span>
+    <button class="btn-logout" onclick="doLogout()">Log ud</button>
+  </div>
+  <div class="user-info">
+    <span id="nav-user-name"></span>
+    <button class="btn-logout" onclick="doLogout()">Log ud</button>
   </div>
 </nav>
 
@@ -1525,12 +1589,118 @@ function rebuildLaes(){
 }
 
 // INIT
-async function init(){
+var currentUser = null;
+var currentRole = null;
+
+async function doLogin(){
+  var email=document.getElementById('login-email').value.trim();
+  var pass=document.getElementById('login-password').value;
+  var errEl=document.getElementById('login-error');
+  errEl.textContent='Logger ind...';
+  try {
+    var res=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=password',{
+      method:'POST',
+      headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({email:email,password:pass})
+    });
+    var data=await res.json();
+    if(!res.ok||!data.access_token){errEl.textContent=data.error_description||'Forkert email eller adgangskode';return;}
+    currentUser=data.user;
+    // Check role in bruger_roller table
+    var roleRes=await fetch(SUPABASE_URL+'/rest/v1/bruger_roller?email=eq.'+encodeURIComponent(email),{
+      headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+data.access_token}
+    });
+    var roleData=await roleRes.json();
+    currentRole=(roleData&&roleData[0])?roleData[0].rolle:'chauffoer';
+    sessionStorage.setItem('vl_token',data.access_token);
+    sessionStorage.setItem('vl_role',currentRole);
+    sessionStorage.setItem('vl_email',email);
+    sessionStorage.setItem('vl_name',(roleData&&roleData[0]&&roleData[0].navn)?roleData[0].navn:email);
+    applyRole();
+    errEl.textContent='';
+  } catch(e){errEl.textContent='Fejl: '+e.message;}
+}
+
+async function doForgotPassword(){
+  var email=prompt('Indtast din email-adresse:');
+  if(!email)return;
+  await fetch(SUPABASE_URL+'/auth/v1/recover',{
+    method:'POST',
+    headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},
+    body:JSON.stringify({email:email})
+  });
+  alert('Hvis emailen findes, er der sendt et link til nulstilling af adgangskode.');
+}
+
+function doLogout(){
+  sessionStorage.clear();
+  currentUser=null;currentRole=null;
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('nav-user-name').innerHTML='';
+}
+
+function applyRole(){
+  document.getElementById('login-screen').classList.add('hidden');
+  var name=sessionStorage.getItem('vl_name')||sessionStorage.getItem('vl_email')||'';
+  document.getElementById('nav-user-name').innerHTML='<strong>'+name+'</strong>';
+  var role=sessionStorage.getItem('vl_role')||'chauffoer';
+  currentRole=role;
+  if(role==='admin'){
+    // Show all tabs
+    document.getElementById('tab-driver').style.display='';
+    document.getElementById('tab-office').style.display='';
+    document.getElementById('tab-waste').style.display='';
+    document.getElementById('tab-admin').style.display='';
+    showTab('driver');
+  } else {
+    // Chauffør: show driver tab + chauffør input subtab only
+    document.getElementById('tab-driver').style.display='';
+    document.getElementById('tab-office').style.display='';
+    document.getElementById('tab-waste').style.display='none';
+    document.getElementById('tab-admin').style.display='none';
+    // When chauffør visits office, only show chauffør input subtab
+    showTab('driver');
+  }
+  loadAppData();
+}
+
+async function loadAppData(){
   document.getElementById('f-dato').value=new Date().toISOString().split('T')[0];
   var tables=['kunder','chauffoerer','affaldstyper','leveringstyper','anlaeg','koeretoej'];
   for(var i=0;i<tables.length;i++){var d=await sbGet(tables[i],'order=oprettet.asc');if(d)adminData[tables[i]]=d;}
   refreshSelects();buildLaes('afhent',1);buildLaes('lev',0);
+  if(currentRole==='admin'||currentRole==='kontor'){
+    await loadTrips();
+    renderAllSubtabs();
+  }
 }
+
+async function init(){
+  // Check existing session
+  var token=sessionStorage.getItem('vl_token');
+  if(token){
+    // Verify token still valid
+    var res=await fetch(SUPABASE_URL+'/auth/v1/user',{
+      headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+token}
+    });
+    if(res.ok){
+      applyRole();
+      return;
+    } else {
+      sessionStorage.clear();
+    }
+  }
+  // Show login
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+// Handle Enter key on login
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&!document.getElementById('login-screen').classList.contains('hidden')){
+    doLogin();
+  }
+});
+
 init();
 </script>
 </body>
