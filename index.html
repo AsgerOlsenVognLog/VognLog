@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VognLog</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f1117;--surface:#191c27;--surface2:#22263a;--border:#2e3354;--accent:#f5a623;--green:#3ecf8e;--blue:#818cf8;--red:#ff5c5c;--text:#eef0f8;--muted:#7b82a8;--r:12px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+nav{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+.logo{font-family:'Syne',sans-serif;font-size:1.35rem;font-weight:800;color:var(--accent);}
+.logo span{color:var(--text);}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;}
+.tab{padding:8px 16px;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.tab:hover{color:var(--text);border-color:var(--border);}
+.tab.active{background:var(--accent);color:#000;border-color:var(--accent);}
+.view{display:none;padding:28px 24px;max-width:1020px;margin:0 auto;}
+.view.active{display:block;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;margin-bottom:16px;}
+.card-title{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:20px;display:flex;align-items:center;gap:10px;}
+.card-title.green{color:var(--green);}
+.step-num{background:var(--accent);color:#000;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:800;flex-shrink:0;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.fg{margin-bottom:14px;}
+label{display:block;font-size:0.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.93rem;outline:none;transition:border-color .2s;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+select option{background:var(--surface2);}
+.rg{display:flex;gap:8px;flex-wrap:wrap;}
+.rb{flex:1;min-width:110px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--muted);font-weight:600;font-size:0.85rem;cursor:pointer;text-align:center;transition:all .2s;user-select:none;}
+.rb.on{border-color:var(--accent);background:rgba(245,166,35,.1);color:var(--accent);}
+.laes-box{background:rgba(245,166,35,.05);border:1px solid rgba(245,166,35,.2);border-radius:10px;padding:16px;margin-top:12px;}
+.laes-title{font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:700;color:var(--accent);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;}
+.btn-primary{width:100%;padding:15px;background:var(--accent);color:#000;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;transition:all .2s;margin-top:6px;}
+.btn-primary:hover{background:#ffc04d;}
+.btn-sm{padding:7px 13px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:0.8rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;}
+.btn-sm:hover{border-color:var(--accent);color:var(--accent);}
+.btn-eco{padding:10px 18px;border-radius:8px;border:none;background:var(--green);color:#000;font-size:0.85rem;font-weight:700;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;}
+.btn-eco:hover{background:#5cf5a8;}
+.btn-del{padding:4px 10px;border-radius:6px;border:1px solid var(--red);background:transparent;color:var(--red);font-size:0.75rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn-kontrol{padding:7px 13px;border-radius:7px;border:none;background:var(--blue);color:#fff;font-size:0.8rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn-faktura{padding:7px 13px;border-radius:7px;border:none;background:var(--green);color:#000;font-size:0.8rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.banner{display:none;background:rgba(62,207,142,.12);border:1px solid var(--green);border-radius:10px;padding:14px 18px;color:var(--green);font-weight:600;margin-bottom:16px;align-items:center;gap:10px;}
+.banner.show{display:flex;}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;}
+.stat-val{font-family:'Syne',sans-serif;font-size:1.9rem;font-weight:800;color:var(--accent);line-height:1;margin-bottom:5px;}
+.stat-lbl{font-size:0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:16px;overflow-x:auto;}
+.tbl-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px;}
+.tbl-head h3{font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;}
+table{width:100%;border-collapse:collapse;min-width:700px;}
+th{text-align:left;padding:11px 16px;font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);background:var(--surface2);}
+td{padding:12px 16px;font-size:0.88rem;border-bottom:1px solid rgba(46,51,84,.5);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(245,166,35,.03);}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:0.72rem;font-weight:700;}
+.b-green{background:rgba(62,207,142,.15);color:var(--green);}
+.b-orange{background:rgba(245,166,35,.15);color:var(--accent);}
+.b-blue{background:rgba(129,140,248,.15);color:var(--blue);}
+.b-red{background:rgba(255,92,92,.15);color:var(--red);}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;}
+.overlay.show{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;width:500px;max-width:92vw;max-height:90vh;overflow-y:auto;}
+.modal h3{font-family:'Syne',sans-serif;font-size:1.1rem;margin-bottom:14px;color:var(--green);}
+.modal p{color:var(--muted);font-size:0.88rem;margin-bottom:8px;line-height:1.6;}
+.mono{font-family:'DM Mono',monospace;font-size:0.8rem;color:var(--accent);background:var(--bg);padding:12px;border-radius:8px;margin:12px 0;}
+.modal-btns{display:flex;gap:10px;margin-top:18px;justify-content:flex-end;}
+.admin-item{display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:8px;}
+.admin-item span{font-size:0.88rem;}
+.empty-msg{color:var(--muted);font-size:0.85rem;font-style:italic;padding:8px 0;}
+.img-upload-area{border:2px dashed var(--border);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:all .2s;margin-top:8px;}
+.img-upload-area:hover{border-color:var(--accent);}
+.img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;margin-top:12px;}
+.img-item{border-radius:8px;overflow:hidden;background:var(--surface2);border:1px solid var(--border);}
+.img-item img{width:100%;aspect-ratio:1;object-fit:cover;display:block;}
+.img-item-btns{padding:6px;display:flex;gap:4px;flex-direction:column;}
+.img-chk{display:flex;align-items:center;gap:6px;font-size:0.75rem;color:var(--muted);cursor:pointer;}
+.img-chk input{width:auto;padding:0;margin:0;}
+.img-del-btn{background:transparent;border:none;color:var(--red);font-size:0.75rem;cursor:pointer;text-align:left;padding:0;font-family:'DM Sans',sans-serif;}
+.subtabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
+.subtab{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.85rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;}
+.subtab:hover{color:var(--text);border-color:var(--accent);}
+.subtab.active{background:var(--surface2);color:var(--text);border-color:var(--accent);}
+.subtab-panel{display:none;}
+.subtab-panel.active{display:block;}
+.pris-edit{background:var(--bg);border:1px solid var(--accent);border-radius:6px;padding:4px 8px;color:var(--text);font-size:0.82rem;width:75px;font-family:'DM Sans',sans-serif;}
+.note-box{background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.3);border-radius:8px;padding:10px 14px;font-size:0.85rem;color:var(--text);margin-bottom:8px;line-height:1.5;}
+.note-warning{background:rgba(255,92,92,.1);border:1px solid rgba(255,92,92,.3);border-radius:8px;padding:10px 14px;font-size:0.85rem;color:var(--red);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.desc-text{font-size:0.8rem;color:var(--muted);font-style:italic;margin-top:3px;}
+@media(max-width:620px){.g2,.g3,.stats{grid-template-columns:1fr;}nav{flex-direction:column;gap:12px;}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo">Vogn<span>Log</span></div>
+  <div class="tabs">
+    <button class="tab active" id="tab-driver" onclick="showTab('driver')">🚛 Chauffør</button>
+    <button class="tab" id="tab-office" onclick="showTab('office')">🏢 Kontor</button>
+    <button class="tab" id="tab-waste" onclick="showTab('waste')">📋 Affaldsregister</button>
+    <button class="tab" id="tab-admin" onclick="showTab('admin')">⚙️ Admin</button>
+  </div>
+</nav>
+
+<!-- CHAUFFØR -->
+<div class="view active" id="view-driver">
+  <div class="banner" id="banner">✅ Tur registreret og sendt til kontor!</div>
+  <div class="card">
+    <div class="card-title"><span class="step-num">1</span> Kundeinfo og dato</div>
+    <div class="g2">
+      <div class="fg"><label>Kunde</label><select id="f-kunde"><option value="">Vælg kunde...</option></select></div>
+      <div class="fg"><label>Adresse / arbejdssted</label><input type="text" id="f-adresse" placeholder="Fx Industrivej 12, Odense"></div>
+    </div>
+    <div class="g2">
+      <div class="fg"><label>Dato</label><input type="date" id="f-dato"></div>
+      <div class="fg"><label>Chauffør</label><select id="f-chauffoer"></select></div>
+    </div>
+    <div class="fg">
+      <label>Turfrekvens</label>
+      <div class="rg" id="rg-turtype">
+        <div class="rb on" onclick="pickRb('rg-turtype',this)">Engangskørsel</div>
+        <div class="rb" onclick="pickRb('rg-turtype',this)">Tilbagevendende</div>
+        <div class="rb" onclick="pickRb('rg-turtype',this)">Del af fast aftale</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="step-num">2</span> Afhentning (affald)</div>
+    <div class="fg"><label>Antal læs afhentet</label>
+      <select id="dd-afhent" onchange="buildLaes('afhent',this.value)">
+        <option value="0">0 – ingen afhentning</option>
+        <option value="1" selected>1 læs</option>
+        <option value="2">2 læs</option>
+        <option value="3">3 læs</option>
+        <option value="4">4 læs</option>
+        <option value="5">5 læs</option>
+      </select>
+    </div>
+    <div id="con-afhent"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="step-num">3</span> Levering (grus, jord mv.)</div>
+    <div class="fg"><label>Antal læs leveret</label>
+      <select id="dd-lev" onchange="buildLaes('lev',this.value)">
+        <option value="0" selected>0 – ingen levering</option>
+        <option value="1">1 læs</option>
+        <option value="2">2 læs</option>
+        <option value="3">3 læs</option>
+        <option value="4">4 læs</option>
+        <option value="5">5 læs</option>
+      </select>
+    </div>
+    <div id="con-lev"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="step-num">4</span> Diverse poster</div>
+    <div id="con-diverse"></div>
+    <button type="button" class="btn-sm" style="margin-top:4px" onclick="addDiverse()">+ Tilføj diverse post</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="step-num">5</span> Billeder</div>
+    <p style="color:var(--muted);font-size:0.85rem;margin-bottom:10px">Tag billeder af læs, kvitteringer eller særlige forhold. Billederne sendes videre til kontor.</p>
+    <div class="img-upload-area" onclick="document.getElementById('img-input').click()">
+      <div style="font-size:2rem;margin-bottom:6px">📷</div>
+      <div style="color:var(--muted);font-size:0.88rem">Tryk for at tage billede eller vælg fra bibliotek</div>
+    </div>
+    <input type="file" id="img-input" accept="image/*" multiple capture="environment" style="display:none" onchange="handleImages(this)">
+    <div class="img-grid" id="img-preview"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="step-num">6</span> Bemærkning</div>
+    <div class="fg"><label>Bemærkning (valgfrit)</label><textarea id="f-note" rows="3" placeholder="Evt. noter til turen – kontoret skal markere 'læst' inden turen kan sendes videre..."></textarea></div>
+  </div>
+
+  <button class="btn-primary" onclick="submitTrip()">✓ Registrér og send til kontor</button>
+</div>
+
+<!-- KONTOR -->
+<div class="view" id="view-office">
+  <div class="stats">
+    <div class="stat"><div class="stat-val" id="s-ture">0</div><div class="stat-lbl">Ture i alt</div></div>
+    <div class="stat"><div class="stat-val" id="s-tons">0 t</div><div class="stat-lbl">Tons kørt</div></div>
+    <div class="stat"><div class="stat-val" id="s-klar">0</div><div class="stat-lbl">Klar til fakturering</div></div>
+  </div>
+  <div class="subtabs">
+    <button class="subtab active" id="subtab-input" onclick="showSubtab('input')">📥 Chauffør input</button>
+    <button class="subtab" id="subtab-kontrol" onclick="showSubtab('kontrol')">🔍 Kontrol</button>
+    <button class="subtab" id="subtab-faktura" onclick="showSubtab('faktura')">✅ Klar til fakturering</button>
+    <button class="subtab" id="subtab-sendt" onclick="showSubtab('sendt')" style="color:var(--green);border-color:rgba(62,207,142,.3)">⚡ Sendt til e-conomic</button>
+    <button class="subtab" id="subtab-slettet" onclick="showSubtab('slettet')" style="margin-left:auto;color:var(--red);border-color:rgba(255,92,92,.3)">🗑 Slettet</button>
+  </div>
+
+  <div class="subtab-panel active" id="panel-input">
+    <div class="tbl-wrap">
+      <div class="tbl-head"><h3>Nye registreringer fra chauffør</h3></div>
+      <table><thead><tr><th>Nye registreringer fra chauffør</th></tr></thead>
+      <tbody id="t-input"></tbody></table>
+    </div>
+  </div>
+
+  <div class="subtab-panel" id="panel-kontrol">
+    <div class="tbl-wrap">
+      <div class="tbl-head"><h3>Ture til kontrol</h3></div>
+      <table><thead><tr><th>Ture til kontrol</th></tr></thead>
+      <tbody id="t-kontrol"></tbody></table>
+    </div>
+  </div>
+
+  <div class="subtab-panel" id="panel-faktura">
+    <div class="tbl-wrap">
+      <div class="tbl-head">
+        <h3>Klar til fakturering</h3>
+        <button class="btn-eco" onclick="openModal()">⚡ Send alle til e-conomic</button>
+      </div>
+      <table><thead><tr><th>Dato</th><th>Kunde</th><th>Beskrivelse</th><th>Tons</th><th>Timer</th><th>Chauffør</th><th>Billeder</th><th></th></tr></thead>
+      <tbody id="t-faktura"></tbody></table>
+    </div>
+  </div>
+
+  <div class="subtab-panel" id="panel-sendt">
+    <div class="tbl-wrap">
+      <div class="tbl-head"><h3 style="color:var(--green)">⚡ Sendt til e-conomic</h3></div>
+      <table><thead><tr><th>Dato</th><th>Kunde</th><th>Adresse</th><th>Beskrivelse</th><th>Tons</th><th>Timer</th><th>Chauffør</th><th>Billeder</th></tr></thead>
+      <tbody id="t-sendt"></tbody></table>
+    </div>
+  </div>
+
+  <div class="subtab-panel" id="panel-slettet">
+    <div class="tbl-wrap">
+      <div class="tbl-head"><h3 style="color:var(--red)">Slettede registreringer</h3></div>
+      <table><thead><tr><th>Dato</th><th>Kunde</th><th>Beskrivelse</th><th>Chauffør</th><th></th></tr></thead>
+      <tbody id="t-slettet"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- AFFALDSREGISTER -->
+<div class="view" id="view-waste">
+  <div class="card">
+    <div class="card-title green">📋 Affaldsregister</div>
+    <p style="color:var(--muted);font-size:0.88rem;margin-bottom:16px">Viser kun affaldsafhentninger. Eksportér til Excel til myndighedsindberetning.</p>
+    <button class="btn-eco" onclick="exportCSV()">⬇ Eksportér til Excel / CSV</button>
+  </div>
+  <div class="tbl-wrap">
+    <table><thead><tr><th>Dato</th><th>Kunde</th><th>Adresse</th><th>EAK-kode</th><th>Affaldstype</th><th>Tons</th><th>Modtageanlæg</th><th>By</th><th>Chauffør</th></tr></thead>
+    <tbody id="t-waste"></tbody></table>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div class="view" id="view-admin">
+  <div class="card">
+    <div class="card-title green">👥 Kunder</div>
+    <div id="list-kunder"></div>
+    <div class="g3" style="margin-top:14px">
+      <div class="fg"><label>Kundenavn</label><input type="text" id="in-kunde-navn" placeholder="Fx Hansen Byg A/S"></div>
+      <div class="fg"><label>Adresse</label><input type="text" id="in-kunde-adresse" placeholder="Fx Industrivej 12, Odense"></div>
+      <div class="fg"><label>Kundenr. i e-conomic</label><input type="number" id="in-kunde-econr" placeholder="Fx 1001" min="1"></div>
+    </div>
+    <button class="btn-sm" onclick="adminAdd('kunder')">+ Tilføj kunde</button>
+  </div>
+  <div class="card">
+    <div class="card-title green">🚛 Chauffører</div>
+    <div id="list-chauffoerer"></div>
+    <div class="g2" style="margin-top:14px">
+      <div class="fg"><label>Navn</label><input type="text" id="in-chauf-navn" placeholder="Fx Mikkel Sørensen"></div>
+      <div class="fg"><label>Telefon (valgfrit)</label><input type="text" id="in-chauf-tlf" placeholder="Fx 12 34 56 78"></div>
+    </div>
+    <button class="btn-sm" onclick="adminAdd('chauffoerer')">+ Tilføj chauffør</button>
+  </div>
+  <div class="card">
+    <div class="card-title green">♻️ Affaldstyper</div>
+    <div id="list-affaldstyper"></div>
+    <div class="g2" style="margin-top:14px">
+      <div class="fg"><label>Navn</label><input type="text" id="in-aff-navn" placeholder="Fx Byggeaffald, blandet"></div>
+      <div class="fg"><label>EAK-kode</label><input type="text" id="in-aff-eak" placeholder="Fx 17 01 07"></div>
+    </div>
+    <div class="g2">
+      <div class="fg"><label>Pris pr. ton (kr.)</label><input type="number" id="in-aff-pris" placeholder="0" min="0"></div>
+      <div class="fg"><label>Varenr. i e-conomic</label><input type="number" id="in-aff-varenr" placeholder="Fx 5" min="1"></div>
+    </div>
+    <button class="btn-sm" onclick="adminAdd('affaldstyper')">+ Tilføj affaldstype</button>
+  </div>
+  <div class="card">
+    <div class="card-title green">⬇️ Leveringstyper</div>
+    <div id="list-leveringstyper"></div>
+    <div class="g3" style="margin-top:14px">
+      <div class="fg"><label>Materiale</label><input type="text" id="in-lev-navn" placeholder="Fx Grus, Sand, Stabilgrus"></div>
+      <div class="fg"><label>Pris pr. ton (kr.)</label><input type="number" id="in-lev-pris" placeholder="0" min="0"></div>
+      <div class="fg"><label>Varenr. i e-conomic</label><input type="number" id="in-lev-varenr" placeholder="Fx 4" min="1"></div>
+    </div>
+    <button class="btn-sm" onclick="adminAdd('leveringstyper')">+ Tilføj leveringstype</button>
+  </div>
+  <div class="card">
+    <div class="card-title green">🏭 Modtageanlæg</div>
+    <div id="list-anlaeg"></div>
+    <div class="g2" style="margin-top:14px">
+      <div class="fg"><label>Navn</label><input type="text" id="in-anlaeg-navn" placeholder="Fx Odense Kraftvarme A/S"></div>
+      <div class="fg"><label>By</label><input type="text" id="in-anlaeg-by" placeholder="Fx Odense"></div>
+    </div>
+    <button class="btn-sm" onclick="adminAdd('anlaeg')">+ Tilføj anlæg</button>
+  </div>
+  <div class="card">
+    <div class="card-title green">🚜 Køretøjstyper og timepriser</div>
+    <p style="color:var(--muted);font-size:0.85rem;margin-bottom:16px">Bruges under hvert læs og under diverse poster.</p>
+    <div id="list-koeretoej"></div>
+    <div class="g3" style="margin-top:14px">
+      <div class="fg"><label>Køretøj</label><input type="text" id="in-koer-navn" placeholder="Fx Kranvogn med kærre"></div>
+      <div class="fg"><label>Timepris (kr.)</label><input type="number" id="in-koer-pris" placeholder="0" min="0"></div>
+      <div class="fg"><label>Varenr. i e-conomic</label><input type="number" id="in-koer-varenr" placeholder="Fx 1" min="1"></div>
+    </div>
+    <button class="btn-sm" onclick="adminAdd('koeretoej')">+ Tilføj køretøj</button>
+  </div>
+</div>
+
+<!-- MODAL: e-conomic -->
+<div class="overlay" id="modal">
+  <div class="modal" style="max-width:600px">
+    <h3>⚡ Send til e-conomic</h3>
+    <p style="margin-bottom:14px">Vælg hvilke ture der skal sendes:</p>
+    <div id="eco-ture-liste" style="max-height:300px;overflow-y:auto;margin-bottom:14px"></div>
+    <div class="mono">POST https://restapi.e-conomic.com/invoices/drafts</div>
+    <div id="eco-status" style="color:var(--green);font-size:0.88rem;margin-top:8px;min-height:20px"></div>
+    <div class="modal-btns">
+      <button class="btn-sm" onclick="closeModal()">Annullér</button>
+      <button class="btn-eco" onclick="confirmEco()">✓ Send valgte til e-conomic</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: rediger admin -->
+<div class="overlay" id="edit-modal">
+  <div class="modal" style="max-width:520px">
+    <h3 id="edit-modal-title" style="color:var(--accent)">✏️ Rediger</h3>
+    <div id="edit-modal-fields" style="margin:16px 0"></div>
+    <div class="modal-btns">
+      <button class="btn-sm" onclick="closeEditModal()">Annullér</button>
+      <button class="btn-eco" id="edit-save-btn">✓ Gem ændringer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: rediger admin -->
+<div class="overlay" id="edit-modal">
+  <div class="modal" style="max-width:520px">
+    <h3 id="edit-modal-title" style="color:var(--accent)">✏️ Rediger</h3>
+    <div id="edit-modal-fields" style="margin:16px 0"></div>
+    <div class="modal-btns">
+      <button class="btn-sm" onclick="closeEditModal()">Annullér</button>
+      <button class="btn-eco" id="edit-save-btn">✓ Gem ændringer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: slet bekræftelse -->
+<div class="overlay" id="slet-modal">
+  <div class="modal">
+    <h3 style="color:var(--red)">🗑 Bekræft sletning</h3>
+    <p id="slet-tekst" style="font-size:1rem;color:var(--text)"></p>
+    <div class="modal-btns">
+      <button class="btn-sm" onclick="closeSletModal()">Annullér</button>
+      <button class="btn-eco" id="slet-bekraeft" style="background:var(--red);color:#fff">Ja, slet</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: billeder -->
+<div class="overlay" id="img-modal">
+  <div class="modal" style="max-width:600px">
+    <h3>📷 Billeder</h3>
+    <div class="img-grid" id="img-modal-grid"></div>
+    <div class="modal-btns"><button class="btn-sm" onclick="document.getElementById('img-modal').classList.remove('show')">Luk</button></div>
+  </div>
+</div>
+
+<script>
+var SUPABASE_URL = 'https://cxqxoxwvuxfpgyhyztfy.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4cXhveHd2dXhmcGd5aHl6dGZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwNzc4MjgsImV4cCI6MjA4NzY1MzgyOH0.JZjMRmF7XjTak6--CVo_T7qNZw_hEAsF-gJFBRWkV4o';
+
+async function sbFetch(path, method, body) {
+  var opts = { method: method||'GET', headers: {'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json','Prefer':method==='POST'?'return=representation':''} };
+  if (body) opts.body = JSON.stringify(body);
+  var res = await fetch(SUPABASE_URL+'/rest/v1/'+path, opts);
+  if (!res.ok) { console.error('SB:', await res.text()); return null; }
+  var txt = await res.text(); return txt ? JSON.parse(txt) : null;
+}
+async function sbGet(t,q){return await sbFetch(t+(q?'?'+q:''),'GET');}
+async function sbInsert(t,d){return await sbFetch(t,'POST',d);}
+async function sbUpdate(t,id,d){return await sbFetch(t+'?id=eq.'+id,'PATCH',d);}
+async function sbDelete(t,id){return await sbFetch(t+'?id=eq.'+id,'DELETE');}
+
+async function uploadImage(file, turId) {
+  var ext = file.name.split('.').pop();
+  var path = turId+'/'+Date.now()+'.'+ext;
+  var res = await fetch(SUPABASE_URL+'/storage/v1/object/billeder/'+path, {
+    method:'POST', headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':file.type}, body:file
+  });
+  if (!res.ok) { console.error('Billede fejl'); return null; }
+  return path;
+}
+function getImageUrl(path){return SUPABASE_URL+'/storage/v1/object/public/billeder/'+path;}
+
+var adminData = {kunder:[],chauffoerer:[],affaldstyper:[],leveringstyper:[],anlaeg:[],koeretoej:[]};
+var trips = [];
+var pendingImages = [];
+var diverseCount = 0;
+
+// TABS
+async function showTab(id) {
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('view-'+id).classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+  if (id==='office'){await reloadTure();renderAllSubtabs();}
+  if (id==='waste'){await reloadTure();renderWaste();}
+  if (id==='admin'){renderAdminLists();}
+}
+
+function showSubtab(id) {
+  document.querySelectorAll('.subtab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.subtab-panel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('subtab-'+id).classList.add('active');
+  document.getElementById('panel-'+id).classList.add('active');
+}
+
+function pickRb(gid,el){document.querySelectorAll('#'+gid+' .rb').forEach(function(b){b.classList.remove('on');});el.classList.add('on');}
+function getRb(gid){var el=document.querySelector('#'+gid+' .rb.on');return el?el.textContent.trim():'';}
+
+// BUILD LÆS
+function buildLaes(type,count){
+  count=parseInt(count);
+  var container=document.getElementById('con-'+type);
+  container.innerHTML='';
+  for(var i=1;i<=count;i++) container.appendChild(makeLaesBox(type,i));
+}
+
+function makeLaesBox(type,idx){
+  var box=document.createElement('div');box.className='laes-box';
+  var title=document.createElement('div');title.className='laes-title';title.textContent='Læs '+idx;
+  box.appendChild(title);
+
+  if(type==='afhent'){
+    var r1=document.createElement('div');r1.className='g2';r1.style.marginBottom='12px';
+    var selType=document.createElement('select');selType.id=type+'-'+idx+'-type';
+    var o0=document.createElement('option');o0.value='';o0.textContent='Vælg type...';selType.appendChild(o0);
+    adminData.affaldstyper.forEach(function(af){var o=document.createElement('option');o.value=af.eak;o.textContent=af.navn+' (EAK '+af.eak+')';selType.appendChild(o);});
+    var selAnlaeg=document.createElement('select');selAnlaeg.id=type+'-'+idx+'-anlaeg';
+    adminData.anlaeg.forEach(function(a){var o=document.createElement('option');o.textContent=a.navn+(a.by?' – '+a.by:'');o.value=a.navn;selAnlaeg.appendChild(o);});
+    r1.appendChild(mkField('Affaldstype',selType));r1.appendChild(mkField('Modtageanlæg',selAnlaeg));
+    box.appendChild(r1);
+  } else {
+    var rm=document.createElement('div');rm.style.marginBottom='12px';
+    var selMat=document.createElement('select');selMat.id=type+'-'+idx+'-mat';
+    adminData.leveringstyper.forEach(function(lv){var o=document.createElement('option');o.textContent=lv.navn;selMat.appendChild(o);});
+    rm.appendChild(mkField('Materiale',selMat));box.appendChild(rm);
+  }
+
+  var r2=document.createElement('div');r2.className='g2';r2.style.marginBottom='12px';
+  var tonsIn=document.createElement('input');tonsIn.type='number';tonsIn.id=type+'-'+idx+'-tons';tonsIn.placeholder='0.0';tonsIn.step='0.1';tonsIn.min='0';
+  var timerIn=document.createElement('input');timerIn.type='number';timerIn.id=type+'-'+idx+'-timer';timerIn.placeholder='0.0';timerIn.step='0.5';timerIn.min='0';
+  r2.appendChild(mkField('Antal tons',tonsIn));r2.appendChild(mkField('Antal timer',timerIn));
+  box.appendChild(r2);
+
+  // Køretøj
+  var r3=document.createElement('div');r3.style.marginBottom='12px';
+  var selKoer=document.createElement('select');selKoer.id=type+'-'+idx+'-koeretoej';
+  adminData.koeretoej.forEach(function(k){var o=document.createElement('option');o.textContent=k.navn+(k.pris>0?' (kr. '+k.pris+'/t)':'');o.value=k.navn;selKoer.appendChild(o);});
+  r3.appendChild(mkField('Køretøj',selKoer));box.appendChild(r3);
+
+  // Beskrivelse til faktura
+  var r4=document.createElement('div');r4.style.marginBottom='12px';
+  var descIn=document.createElement('textarea');descIn.id=type+'-'+idx+'-desc';descIn.rows=2;descIn.placeholder='Fx "Afhentet grus RGS leveret til pladsen" – teksten kommer på fakturaen';
+  r4.appendChild(mkField('Beskrivelse til faktura',descIn));box.appendChild(r4);
+
+  // Betaler
+  var rgId='rg-bet-'+type+'-'+idx;
+  var rg=document.createElement('div');rg.className='rg';rg.id=rgId;
+  var b1=document.createElement('div');b1.className='rb on';b1.textContent='💰 Vi opkræver';b1.setAttribute('onclick','pickRb("'+rgId+'",this)');
+  var b2=document.createElement('div');b2.className='rb';b2.textContent='🙋 Kunden betaler';b2.setAttribute('onclick','pickRb("'+rgId+'",this)');
+  rg.appendChild(b1);rg.appendChild(b2);
+  box.appendChild(mkField(type==='afhent'?'Hvem betaler afgiften?':'Hvem betaler materialet?',rg));
+  return box;
+}
+
+function mkField(lbl,el){
+  var fg=document.createElement('div');fg.className='fg';fg.style.marginBottom='0';
+  var l=document.createElement('label');l.textContent=lbl;
+  fg.appendChild(l);fg.appendChild(el);return fg;
+}
+
+// DIVERSE med køretøjsvalg
+function addDiverse(){
+  diverseCount++;
+  var i=diverseCount;
+  var box=document.createElement('div');box.className='laes-box';box.id='dvs-'+i;
+  var hdr=document.createElement('div');hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px';
+  var ttl=document.createElement('div');ttl.className='laes-title';ttl.style.marginBottom='0';ttl.textContent='Diverse post '+i;
+  var del=document.createElement('button');del.className='btn-del';del.textContent='✕ Fjern';del.setAttribute('onclick','document.getElementById("dvs-'+i+'").remove()');
+  hdr.appendChild(ttl);hdr.appendChild(del);box.appendChild(hdr);
+
+  var g=document.createElement('div');g.className='g2';g.style.marginBottom='12px';
+  var dIn=document.createElement('input');dIn.type='text';dIn.id='dvs-'+i+'-desc';dIn.placeholder='Fx oprydning, ventning, specialopgave...';
+  var tIn=document.createElement('input');tIn.type='number';tIn.id='dvs-'+i+'-timer';tIn.placeholder='0.0';tIn.step='0.5';tIn.min='0';
+  g.appendChild(mkField('Beskrivelse',dIn));g.appendChild(mkField('Antal timer',tIn));
+  box.appendChild(g);
+
+  // Køretøjsvalg til diverse
+  var gk=document.createElement('div');gk.style.marginBottom='0';
+  var selK=document.createElement('select');selK.id='dvs-'+i+'-koeretoej';
+  adminData.koeretoej.forEach(function(k){var o=document.createElement('option');o.textContent=k.navn+(k.pris>0?' (kr. '+k.pris+'/t)':'');o.value=k.navn;selK.appendChild(o);});
+  gk.appendChild(mkField('Køretøj',selK));box.appendChild(gk);
+
+  document.getElementById('con-diverse').appendChild(box);
+}
+
+function collectDiverse(){
+  var result=[];
+  document.querySelectorAll('[id^="dvs-"][class="laes-box"]').forEach(function(box){
+    var num=box.id.replace('dvs-','');
+    var d=document.getElementById('dvs-'+num+'-desc');
+    var t=document.getElementById('dvs-'+num+'-timer');
+    var k=document.getElementById('dvs-'+num+'-koeretoej');
+    if(d&&d.value.trim()) result.push({desc:d.value.trim(),timer:parseFloat(t.value)||0,koeretoej:k?k.value:''});
+  });
+  return result;
+}
+
+function collectLaes(type,count){
+  var result=[];
+  for(var i=1;i<=count;i++){
+    var tons=parseFloat((document.getElementById(type+'-'+i+'-tons')||{}).value)||0;
+    var timer=parseFloat((document.getElementById(type+'-'+i+'-timer')||{}).value)||0;
+    var rgId='rg-bet-'+type+'-'+i;
+    var betOn=document.querySelector('#'+rgId+' .rb.on');
+    var betaler=betOn&&betOn.textContent.indexOf('Kunden')>-1?'kunde':'vi';
+    var koerEl=document.getElementById(type+'-'+i+'-koeretoej');
+    var koeretoej=koerEl?koerEl.value:'';
+    var descEl=document.getElementById(type+'-'+i+'-desc');
+    var beskrivelse=descEl?descEl.value.trim():'';
+    if(type==='afhent'){
+      var st=document.getElementById(type+'-'+i+'-type');
+      var sa=document.getElementById(type+'-'+i+'-anlaeg');
+      result.push({label:st?st.options[st.selectedIndex].text.replace(/\s*\(EAK.*\)/,''):'',eak:st?st.value:'',tons:tons,timer:timer,anlaeg:sa?sa.value:'',betaler:betaler,koeretoej:koeretoej,beskrivelse:beskrivelse});
+    } else {
+      var sm=document.getElementById(type+'-'+i+'-mat');
+      result.push({label:sm?sm.value:'',tons:tons,timer:timer,betaler:betaler,koeretoej:koeretoej,beskrivelse:beskrivelse});
+    }
+  }
+  return result;
+}
+
+// BILLEDER
+function handleImages(input){
+  Array.from(input.files).forEach(function(file){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      pendingImages.push({file:file,preview:e.target.result,internt:true,kunde:false});
+      renderPreviews();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value='';
+}
+
+function renderPreviews(){
+  var grid=document.getElementById('img-preview');
+  grid.innerHTML='';
+  pendingImages.forEach(function(img,idx){
+    var item=document.createElement('div');item.className='img-item';
+    var im=document.createElement('img');im.src=img.preview;
+    var btns=document.createElement('div');btns.className='img-item-btns';
+
+    var lbl1=document.createElement('label');lbl1.className='img-chk';
+    var chk1=document.createElement('input');chk1.type='checkbox';chk1.checked=img.internt;
+    chk1.onchange=(function(i){return function(){pendingImages[i].internt=this.checked;};})(idx);
+    lbl1.appendChild(chk1);lbl1.appendChild(document.createTextNode('Internt brug'));
+
+    var lbl2=document.createElement('label');lbl2.className='img-chk';
+    var chk2=document.createElement('input');chk2.type='checkbox';chk2.checked=img.kunde;
+    chk2.onchange=(function(i){return function(){pendingImages[i].kunde=this.checked;};})(idx);
+    lbl2.appendChild(chk2);lbl2.appendChild(document.createTextNode('Sendes til kunde'));
+
+    var delBtn=document.createElement('button');delBtn.className='img-del-btn';delBtn.textContent='✕ Fjern';
+    delBtn.onclick=(function(i){return function(){pendingImages.splice(i,1);renderPreviews();};})(idx);
+
+    btns.appendChild(lbl1);btns.appendChild(lbl2);btns.appendChild(delBtn);
+    item.appendChild(im);item.appendChild(btns);
+    grid.appendChild(item);
+  });
+}
+
+// SUBMIT
+async function submitTrip(){
+  var kunde=document.getElementById('f-kunde').value;
+  var adresse=document.getElementById('f-adresse').value;
+  var dato=document.getElementById('f-dato').value;
+  var chauffoer=document.getElementById('f-chauffoer').value;
+  var note=document.getElementById('f-note').value.trim();
+  var turtype=getRb('rg-turtype');
+  var nA=parseInt(document.getElementById('dd-afhent').value)||0;
+  var nL=parseInt(document.getElementById('dd-lev').value)||0;
+  if(!kunde){alert('Vælg venligst en kunde.');return;}
+  if(!adresse){alert('Udfyld adresse.');return;}
+  if(nA===0&&nL===0){alert('Vælg mindst 1 læs.');return;}
+
+  var afhentLaes=collectLaes('afhent',nA);
+  var levLaes=collectLaes('lev',nL);
+  var diversePoster=collectDiverse();
+  var allLaes=afhentLaes.concat(levLaes);
+  var totalTons=allLaes.reduce(function(a,b){return a+b.tons;},0);
+  var totalTimer=allLaes.reduce(function(a,b){return a+(b.timer||0);},0)+diversePoster.reduce(function(a,b){return a+(b.timer||0);},0);
+
+  var turResult=await sbInsert('ture',{dato:dato,kunde:kunde,adresse:adresse,chauffoer:chauffoer,timer:totalTimer,note:note,note_laest:false,turtype:turtype,tons:totalTons,status:'input'});
+  var turId=turResult&&turResult[0]?turResult[0].id:null;
+
+  for(var ai=0;ai<afhentLaes.length;ai++){
+    var al=afhentLaes[ai];
+    await sbInsert('afhent_laes',{tur_id:turId,label:al.label,eak:al.eak,tons:al.tons,timer:al.timer,anlaeg:al.anlaeg,betaler:al.betaler,koeretoej:al.koeretoej,beskrivelse:al.beskrivelse,pris_ton:getMatPris('aff',al.eak)});
+  }
+  for(var li=0;li<levLaes.length;li++){
+    var ll=levLaes[li];
+    await sbInsert('lev_laes',{tur_id:turId,label:ll.label,tons:ll.tons,timer:ll.timer,betaler:ll.betaler,koeretoej:ll.koeretoej,beskrivelse:ll.beskrivelse,pris_ton:getMatPris('lev',ll.label)});
+  }
+  for(var di=0;di<diversePoster.length;di++){
+    await sbInsert('diverse',{tur_id:turId,beskrivelse:diversePoster[di].desc,timer:diversePoster[di].timer,koeretoej:diversePoster[di].koeretoej});
+  }
+  for(var ii=0;ii<pendingImages.length;ii++){
+    var imgPath=await uploadImage(pendingImages[ii].file,turId);
+    if(imgPath) await sbInsert('billeder',{tur_id:turId,path:imgPath,internt:pendingImages[ii].internt,til_kunde:pendingImages[ii].kunde});
+  }
+
+  document.getElementById('banner').classList.add('show');
+  setTimeout(function(){document.getElementById('banner').classList.remove('show');},4000);
+
+  document.getElementById('f-kunde').value='';document.getElementById('f-adresse').value='';
+  document.getElementById('f-note').value='';document.getElementById('dd-afhent').value='1';
+  document.getElementById('dd-lev').value='0';document.getElementById('con-diverse').innerHTML='';
+  pendingImages=[];document.getElementById('img-preview').innerHTML='';
+  diverseCount=0;buildLaes('afhent',1);buildLaes('lev',0);
+}
+
+function getMatPris(type,key){
+  if(type==='aff'){var a=adminData.affaldstyper.find(function(x){return x.eak===key;});return a?a.pris:0;}
+  var l=adminData.leveringstyper.find(function(x){return x.navn===key;});return l?l.pris:0;
+}
+
+function getKoerPris(navn){var k=adminData.koeretoej.find(function(x){return x.navn===navn;});return k?k.pris:0;}
+
+document.addEventListener('change',function(e){
+  var inp=e.target;
+  if(!inp.dataset||!inp.dataset.field||!inp.dataset.table||!inp.dataset.id)return;
+  var val=parseFloat(inp.value)||0;
+  var upd={};upd[inp.dataset.field]=val;
+  sbUpdate(inp.dataset.table,inp.dataset.id,upd);
+});
+
+// Save laes field on change (called via event delegation)
+document.addEventListener('change', function(e) {
+  var inp = e.target;
+  if (!inp.dataset.field || !inp.dataset.table || !inp.dataset.id) return;
+  var val = parseFloat(inp.value) || 0;
+  var update = {};
+  update[inp.dataset.field] = val;
+  sbUpdate(inp.dataset.table, inp.dataset.id, update);
+  // Update local copy too
+  var field = inp.dataset.field;
+  var id = inp.dataset.id;
+  trips.forEach(function(t) {
+    (t.afhentLaes||[]).forEach(function(l){ if(l.id===id) l[field]=val; });
+    (t.levLaes||[]).forEach(function(l){ if(l.id===id) l[field]=val; });
+  });
+});
+
+// RELOAD
+async function reloadTure(){
+  var tureData=await sbGet('ture','order=oprettet.desc');
+  if(!tureData)return;
+  trips=[];
+  for(var ti=0;ti<tureData.length;ti++){
+    var tur=tureData[ti];
+    var a=await sbGet('afhent_laes','tur_id=eq.'+tur.id);
+    var l=await sbGet('lev_laes','tur_id=eq.'+tur.id);
+    var d=await sbGet('diverse','tur_id=eq.'+tur.id);
+    var b=await sbGet('billeder','tur_id=eq.'+tur.id);
+    tur.afhentLaes=a||[];
+    tur.levLaes=l||[];
+    tur.diversePoster=(d||[]).map(function(x){return{desc:x.beskrivelse,timer:x.timer,koeretoej:x.koeretoej};});
+    tur.billeder=b||[];
+    trips.push(tur);
+  }
+}
+
+function updateStats(){
+  var active=trips.filter(function(t){return t.status!=='slettet';});
+  document.getElementById('s-ture').textContent=active.length;
+  document.getElementById('s-tons').textContent=active.reduce(function(a,b){return a+b.tons;},0).toFixed(1)+' t';
+  document.getElementById('s-klar').textContent=active.filter(function(t){return t.status==='faktura';}).length;
+}
+
+function turDesc(t){
+  var desc=[];
+  if(t.afhentLaes&&t.afhentLaes.length) desc.push(t.afhentLaes.map(function(l){return l.label;}).join(', ')+' ('+t.afhentLaes.length+' læs)');
+  if(t.levLaes&&t.levLaes.length) desc.push(t.levLaes.map(function(l){return l.label;}).join(', ')+' ('+t.levLaes.length+' læs)');
+  if(t.diversePoster&&t.diversePoster.length) desc.push(t.diversePoster.map(function(d){return d.desc;}).join(', '));
+  return desc.join(' + ')||'–';
+}
+
+function billedBtn(t){
+  if(!t.billeder||!t.billeder.length) return '<span style="color:var(--muted);font-size:0.8rem">–</span>';
+  var kundeAntal=t.billeder.filter(function(b){return b.til_kunde;}).length;
+  var txt='📷 '+t.billeder.length;
+  if(kundeAntal>0) txt+=' <span class="badge b-green">'+kundeAntal+' til kunde</span>';
+  return '<button class="btn-sm" style="font-size:0.75rem;white-space:nowrap" onclick="showBilleder(\''+t.id+'\')">'+txt+'</button>';
+}
+
+function noteCell(t){
+  if(!t.note) return '<span style="color:var(--muted);font-size:0.8rem">–</span>';
+  if(t.note_laest) return '<span style="color:var(--green);font-size:0.8rem">✓ Læst</span>';
+  return '<div class="note-warning">⚠️ '+t.note+'</div>';
+}
+
+function showBilleder(turId){
+  var tur=trips.find(function(t){return t.id===turId;});
+  if(!tur||!tur.billeder.length)return;
+  var grid=document.getElementById('img-modal-grid');grid.innerHTML='';
+  tur.billeder.forEach(function(b){
+    var item=document.createElement('div');item.className='img-item';
+    var im=document.createElement('img');im.src=getImageUrl(b.path);im.style.cursor='pointer';im.onclick=function(){window.open(getImageUrl(b.path),'_blank');};
+    var lbl=document.createElement('div');lbl.style.cssText='padding:6px;font-size:0.75rem;color:var(--muted)';
+    lbl.textContent=b.til_kunde?'📤 Til kunde':'🔒 Internt';
+    item.appendChild(im);item.appendChild(lbl);grid.appendChild(item);
+  });
+  document.getElementById('img-modal').classList.add('show');
+}
+
+function renderAllSubtabs(){updateStats();renderSubtab('input');renderSubtab('kontrol');renderSubtab('faktura');renderSubtab('sendt');renderSubtab('slettet');}
+
+function renderSubtab(type){
+  var filtered=trips.filter(function(t){return t.status===type;});
+  var tbody;
+
+  if(type==='input'){
+    tbody=document.getElementById('t-input');tbody.innerHTML='';
+    if(!filtered.length){tbody.innerHTML='<tr><td colspan="1" style="text-align:center;color:var(--muted);padding:24px">Ingen nye registreringer</td></tr>';return;}
+    filtered.forEach(function(t){
+      var tr=document.createElement('tr');
+      var td=document.createElement('td');td.setAttribute('colspan','1');td.style.padding='0';
+      var hasNote=t.note&&!t.note_laest;
+
+      var box=document.createElement('div');
+      box.style.cssText='background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin:8px;overflow:hidden;';
+
+      // Header
+      var hdr=document.createElement('div');
+      hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;';
+      hdr.innerHTML='<div>'
+        +'<span style="font-family:DM Mono,monospace;font-size:0.82rem;color:var(--muted)">'+t.dato+'</span>'
+        +'<strong style="margin-left:12px;font-size:1rem">'+t.kunde+'</strong>'
+        +'<span style="margin-left:10px;color:var(--muted);font-size:0.82rem">'+t.chauffoer+'</span>'
+        +'</div>'
+        +'<div style="display:flex;gap:8px;align-items:center">'
+        +'<span style="font-size:0.85rem;color:var(--muted)">'+t.tons.toFixed(1)+' t total</span>'
+        +billedBtn(t)
+        +'</div>';
+      box.appendChild(hdr);
+
+      // Note advarsel
+      if(t.note){
+        var nd=document.createElement('div');
+        if(!t.note_laest){
+          nd.innerHTML='<div class="note-warning" style="margin:10px 18px">⚠️ Bemærkning: '+t.note+'</div>';
+        } else {
+          nd.innerHTML='<div style="padding:6px 18px;font-size:0.8rem;color:var(--green)">✓ Bemærkning læst: '+t.note+'</div>';
+        }
+        box.appendChild(nd.firstChild);
+      }
+
+      // Læs grid
+      var laesGrid=document.createElement('div');
+      laesGrid.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));';
+
+      (t.afhentLaes||[]).forEach(function(l,li){
+        var cell=document.createElement('div');
+        cell.style.cssText='border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:14px 18px;';
+        cell.innerHTML='<div style="margin-bottom:8px"><span class="badge b-green">↑ Afhentning '+(li+1)+'</span></div>'
+          +'<div style="font-size:0.9rem;font-weight:600;margin-bottom:4px">'+l.label+'</div>'
+          +(l.beskrivelse?'<div class="desc-text" style="margin-bottom:8px">📝 '+l.beskrivelse+'</div>':'')
+          +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.82rem">'
+          +'<div style="color:var(--muted)">Tons<br><strong style="color:var(--text)">'+l.tons+' t</strong></div>'
+          +'<div style="color:var(--muted)">Timer<br><strong style="color:var(--text)">'+l.timer+' t</strong></div>'
+          +'</div>'
+          +'<div style="font-size:0.78rem;color:var(--muted);margin-top:6px">'+l.koeretoej+'</div>'
+          +(l.anlaeg?'<div style="font-size:0.78rem;color:var(--muted)">Anlæg: '+l.anlaeg+'</div>':'');
+        laesGrid.appendChild(cell);
+      });
+
+      (t.levLaes||[]).forEach(function(l,li){
+        var cell=document.createElement('div');
+        cell.style.cssText='border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:14px 18px;';
+        cell.innerHTML='<div style="margin-bottom:8px"><span class="badge b-blue">↓ Levering '+(li+1)+'</span></div>'
+          +'<div style="font-size:0.9rem;font-weight:600;margin-bottom:4px">'+l.label+'</div>'
+          +(l.beskrivelse?'<div class="desc-text" style="margin-bottom:8px">📝 '+l.beskrivelse+'</div>':'')
+          +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.82rem">'
+          +'<div style="color:var(--muted)">Tons<br><strong style="color:var(--text)">'+l.tons+' t</strong></div>'
+          +'<div style="color:var(--muted)">Timer<br><strong style="color:var(--text)">'+l.timer+' t</strong></div>'
+          +'</div>'
+          +'<div style="font-size:0.78rem;color:var(--muted);margin-top:6px">'+l.koeretoej+'</div>';
+        laesGrid.appendChild(cell);
+      });
+
+      (t.diversePoster||[]).forEach(function(d){
+        var cell=document.createElement('div');
+        cell.style.cssText='border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:14px 18px;';
+        cell.innerHTML='<div style="margin-bottom:8px"><span class="badge b-orange">Diverse</span></div>'
+          +'<div style="font-size:0.9rem;font-weight:600;margin-bottom:4px">'+d.desc+'</div>'
+          +'<div style="font-size:0.82rem;color:var(--muted)">'+d.timer+' t · '+d.koeretoej+'</div>';
+        laesGrid.appendChild(cell);
+      });
+
+      box.appendChild(laesGrid);
+
+      // Footer
+      var ftr=document.createElement('div');
+      ftr.style.cssText='display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 18px;flex-wrap:wrap;';
+
+      if(hasNote){
+        var noteBtn=document.createElement('button');noteBtn.className='btn-sm';noteBtn.style.cssText='border-color:var(--accent);color:var(--accent)';noteBtn.textContent='✓ Markér bemærkning som læst';
+        noteBtn.onclick=(function(id){return function(){markNoteLaest(id);};})(t.id);
+        ftr.appendChild(noteBtn);
+        var warn=document.createElement('span');warn.style.cssText='font-size:0.75rem;color:var(--red)';warn.textContent='⚠️ Læs bemærkning før videresendelse';
+        ftr.appendChild(warn);
+      } else {
+        var sendBtn=document.createElement('button');sendBtn.className='btn-kontrol';sendBtn.textContent='→ Send til kontrol';
+        sendBtn.onclick=(function(id){return function(){setStatus(id,'kontrol');};})(t.id);
+        ftr.appendChild(sendBtn);
+      }
+      var delBtn=document.createElement('button');delBtn.className='btn-del';delBtn.textContent='Slet';
+      delBtn.onclick=(function(id,k){return function(){promptSlet(id,k);};})(t.id,t.kunde);
+      ftr.appendChild(delBtn);
+
+      box.appendChild(ftr);
+      td.appendChild(box);tr.appendChild(td);tbody.appendChild(tr);
+    });
+
+  } else if(type==='kontrol'){
+    tbody=document.getElementById('t-kontrol');tbody.innerHTML='';
+    if(!filtered.length){tbody.innerHTML='<tr><td colspan="1" style="text-align:center;color:var(--muted);padding:24px">Ingen ture til kontrol</td></tr>';return;}
+
+    filtered.forEach(function(t){
+      // Byg én stor tur-boks som en tabel-række med colspan
+      var tr=document.createElement('tr');
+      var td=document.createElement('td');
+      td.setAttribute('colspan','1');
+      td.style.padding='0';
+
+      var box=document.createElement('div');
+      box.style.cssText='background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin:8px;overflow:hidden;';
+
+      // Header
+      var hdr=document.createElement('div');
+      hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;';
+      hdr.innerHTML='<div>'
+        +'<span style="font-family:DM Mono,monospace;font-size:0.82rem;color:var(--muted)">'+t.dato+'</span>'
+        +'<strong style="margin-left:12px;font-size:1rem">'+t.kunde+'</strong>'
+        +'<span style="margin-left:10px;color:var(--muted);font-size:0.82rem">'+t.chauffoer+'</span>'
+        +'</div>'
+        +'<div style="display:flex;gap:8px;align-items:center">'
+        +'<span style="font-size:0.85rem;color:var(--muted)">'+t.tons.toFixed(1)+' t · '+t.timer+' t</span>'
+        +billedBtn(t)
+        +'</div>';
+
+      // Note advarsel
+      var noteHtml='';
+      if(t.note&&!t.note_laest){
+        noteHtml='<div style="margin:10px 18px 0"><div class="note-warning">⚠️ Bemærkning: '+t.note+'</div></div>';
+      } else if(t.note&&t.note_laest){
+        noteHtml='<div style="padding:6px 18px;font-size:0.8rem;color:var(--green)">✓ Bemærkning læst</div>';
+      }
+
+      // Læs grid
+      var laesGrid=document.createElement('div');
+      laesGrid.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0;';
+
+      // Afhentning læs
+      (t.afhentLaes||[]).forEach(function(l,li){
+        var cell=document.createElement('div');
+        cell.style.cssText='border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:14px 18px;';
+        cell.innerHTML='<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">'
+          +'<span class="badge b-green">↑ Afhentning læs '+(li+1)+'</span>'
+          +'<span style="font-size:0.85rem;color:var(--text)">'+l.label+'</span>'
+          +'</div>';
+        if(l.beskrivelse) cell.innerHTML+='<div class="desc-text" style="margin-bottom:10px">📝 '+l.beskrivelse+'</div>';
+
+        cell.innerHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
+          +'<div style="font-size:0.78rem;color:var(--muted)">Tons<br><input class="pris-edit" type="number" value="'+l.tons+'" min="0" step="0.1" data-field="tons" data-table="afhent_laes" data-id="'+(l.id||'')+'"> t</div>'
+          +'<div style="font-size:0.78rem;color:var(--muted)">Timer<br><input class="pris-edit" type="number" value="'+l.timer+'" min="0" step="0.5" data-field="timer" data-table="afhent_laes" data-id="'+(l.id||'')+'"> t</div>'
+          +'</div>';
+
+        cell.innerHTML+='<div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px">Køretøj: <span style="color:var(--text)">'+l.koeretoej+'</span></div>';
+        cell.innerHTML+='<div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px">Anlæg: <span style="color:var(--text)">'+l.anlaeg+'</span></div>';
+
+        cell.innerHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'
+          +'<div><div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Tonspris (affald)</div>'
+          +'<div style="display:flex;align-items:center;gap:4px"><input class="pris-edit" type="number" value="'+(l.pris_ton||0)+'" min="0" data-field="pris_ton" data-table="afhent_laes" data-id="'+(l.id||'')+'"> <span style="font-size:0.78rem;color:var(--muted)">kr/t</span></div></div>'
+          +'<div><div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Timepris ('+l.koeretoej+')</div>'
+          +'<div style="display:flex;align-items:center;gap:4px"><input class="pris-edit" type="number" value="'+getKoerPris(l.koeretoej)+'" min="0" data-field="pris_time" data-table="afhent_laes" data-id="'+(l.id||'')+'"> <span style="font-size:0.78rem;color:var(--muted)">kr/t</span></div></div>'
+          +'</div>';
+
+        laesGrid.appendChild(cell);
+      });
+
+      // Levering læs
+      (t.levLaes||[]).forEach(function(l,li){
+        var cell=document.createElement('div');
+        cell.style.cssText='border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:14px 18px;';
+        cell.innerHTML='<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">'
+          +'<span class="badge b-blue">↓ Levering læs '+(li+1)+'</span>'
+          +'<span style="font-size:0.85rem;color:var(--text)">'+l.label+'</span>'
+          +'</div>';
+        if(l.beskrivelse) cell.innerHTML+='<div class="desc-text" style="margin-bottom:10px">📝 '+l.beskrivelse+'</div>';
+
+        cell.innerHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
+          +'<div style="font-size:0.78rem;color:var(--muted)">Tons<br><input class="pris-edit" type="number" value="'+l.tons+'" min="0" step="0.1" data-field="tons" data-table="lev_laes" data-id="'+(l.id||'')+'"> t</div>'
+          +'<div style="font-size:0.78rem;color:var(--muted)">Timer<br><input class="pris-edit" type="number" value="'+l.timer+'" min="0" step="0.5" data-field="timer" data-table="lev_laes" data-id="'+(l.id||'')+'"> t</div>'
+          +'</div>';
+        cell.innerHTML+='<div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px">Køretøj: <span style="color:var(--text)">'+l.koeretoej+'</span></div>';
+
+        cell.innerHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'
+          +'<div><div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Tonspris (materiale)</div>'
+          +'<div style="display:flex;align-items:center;gap:4px"><input class="pris-edit" type="number" value="'+(l.pris_ton||0)+'" min="0" data-field="pris_ton" data-table="lev_laes" data-id="'+(l.id||'')+'"> <span style="font-size:0.78rem;color:var(--muted)">kr/t</span></div></div>'
+          +'<div><div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Timepris ('+l.koeretoej+')</div>'
+          +'<div style="display:flex;align-items:center;gap:4px"><input class="pris-edit" type="number" value="'+getKoerPris(l.koeretoej)+'" min="0" data-field="pris_time" data-table="lev_laes" data-id="'+(l.id||'')+'"> <span style="font-size:0.78rem;color:var(--muted)">kr/t</span></div></div>'
+          +'</div>';
+
+        laesGrid.appendChild(cell);
+      });
+
+      // Diverse
+      (t.diversePoster||[]).forEach(function(d){
+        var cell=document.createElement('div');
+        cell.style.cssText='border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:14px 18px;';
+        cell.innerHTML='<div style="margin-bottom:10px"><span class="badge b-orange">Diverse</span> <span style="font-size:0.85rem">'+d.desc+'</span></div>'
+          +'<div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">'+d.timer+' t · '+d.koeretoej+'</div>'
+          +'<div><div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Timepris ('+d.koeretoej+')</div>'
+          +'<div style="display:flex;align-items:center;gap:4px"><input class="pris-edit" type="number" value="'+getKoerPris(d.koeretoej)+'" min="0"> <span style="font-size:0.78rem;color:var(--muted)">kr/t</span></div></div>';
+        laesGrid.appendChild(cell);
+      });
+
+      // Footer med knapper
+      var ftr=document.createElement('div');
+      ftr.style.cssText='display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 18px;border-top:1px solid var(--border);';
+      var fBtn=document.createElement('button');fBtn.className='btn-faktura';fBtn.textContent='✅ Klar til fakturering';
+      fBtn.onclick=(function(id){return function(){setStatus(id,'faktura');};})(t.id);
+      var dBtn=document.createElement('button');dBtn.className='btn-del';dBtn.textContent='Slet';
+      dBtn.onclick=(function(id,k){return function(){promptSlet(id,k);};})(t.id,t.kunde);
+      ftr.appendChild(fBtn);ftr.appendChild(dBtn);
+
+      box.appendChild(hdr);
+      if(noteHtml){var nd=document.createElement('div');nd.innerHTML=noteHtml;box.appendChild(nd.firstChild);}
+      box.appendChild(laesGrid);
+      box.appendChild(ftr);
+      td.appendChild(box);tr.appendChild(td);tbody.appendChild(tr);
+    });
+
+  } else if(type==='faktura'){
+    tbody=document.getElementById('t-faktura');tbody.innerHTML='';
+    if(!filtered.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Ingen ture klar til fakturering</td></tr>';return;}
+    filtered.forEach(function(t){
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td style="font-family:DM Mono,monospace;font-size:0.8rem">'+t.dato+'</td>'
+        +'<td><strong>'+t.kunde+'</strong></td>'
+        +'<td style="font-size:0.82rem;color:var(--muted)">'+turDesc(t)+'</td>'
+        +'<td>'+t.tons.toFixed(1)+' t</td>'
+        +'<td>'+t.timer+' t</td>'
+        +'<td style="color:var(--muted)">'+t.chauffoer+'</td>'
+        +'<td>'+billedBtn(t)+'</td>'
+        +'<td><button class="btn-del" onclick="promptSlet(\''+t.id+'\',\''+t.kunde+'\')">Slet</button></td>';
+      tbody.appendChild(tr);
+    });
+
+  } else if(type==='sendt'){
+    tbody=document.getElementById('t-sendt');tbody.innerHTML='';
+    if(!filtered.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Ingen ture sendt endnu</td></tr>';return;}
+    filtered.forEach(function(t){
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td style="font-family:DM Mono,monospace;font-size:0.8rem">'+t.dato+'</td>'
+        +'<td><strong>'+t.kunde+'</strong></td>'
+        +'<td style="color:var(--muted);font-size:0.82rem">'+t.adresse+'</td>'
+        +'<td style="font-size:0.82rem;color:var(--muted)">'+turDesc(t)+'</td>'
+        +'<td>'+t.tons.toFixed(1)+' t</td>'
+        +'<td>'+t.timer+' t</td>'
+        +'<td style="color:var(--muted)">'+t.chauffoer+'</td>'
+        +'<td>'+billedBtn(t)+'</td>';
+      tbody.appendChild(tr);
+    });
+  } else if(type==='slettet'){
+    tbody=document.getElementById('t-slettet');tbody.innerHTML='';
+    if(!filtered.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Ingen slettede registreringer</td></tr>';return;}
+    filtered.forEach(function(t){
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td style="font-family:DM Mono,monospace;font-size:0.8rem">'+t.dato+'</td>'
+        +'<td>'+t.kunde+'</td>'
+        +'<td style="font-size:0.82rem;color:var(--muted)">'+turDesc(t)+'</td>'
+        +'<td style="color:var(--muted)">'+t.chauffoer+'</td>'
+        +'<td><button class="btn-sm" style="font-size:0.75rem" onclick="setStatus(\''+t.id+'\',\'input\')">↩ Gendan</button></td>';
+      tbody.appendChild(tr);
+    });
+  }
+}
+
+async function markNoteLaest(turId){
+  await sbUpdate('ture',turId,{note_laest:true});
+  var t=trips.find(function(x){return x.id===turId;});
+  if(t) t.note_laest=true;
+  renderAllSubtabs();
+}
+
+async function setStatus(turId,newStatus){
+  await sbUpdate('ture',turId,{status:newStatus});
+  var t=trips.find(function(x){return x.id===turId;});
+  if(t) t.status=newStatus;
+  updateStats();renderAllSubtabs();
+}
+
+function promptSlet(turId,kundeNavn){
+  document.getElementById('slet-tekst').textContent='Er du sikker på, at du vil slette turen for "'+kundeNavn+'"? Den vil stadig kunne ses under Slettet.';
+  document.getElementById('slet-bekraeft').onclick=function(){setStatus(turId,'slettet');closeSletModal();};
+  document.getElementById('slet-modal').classList.add('show');
+}
+function closeSletModal(){document.getElementById('slet-modal').classList.remove('show');}
+
+// WASTE - kun affald, ingen timer, med by
+function renderWaste(){
+  var html='';
+  trips.forEach(function(t){
+    if(t.status==='slettet'||t.status==='input'||t.status==='kontrol'||t.status==='faktura')return;
+    (t.afhentLaes||[]).forEach(function(l){
+      var anlaegBy='';
+      var aObj=adminData.anlaeg.find(function(a){return a.navn===l.anlaeg;});
+      if(aObj&&aObj.by) anlaegBy=aObj.by;
+      html+='<tr>'
+        +'<td style="font-family:DM Mono,monospace;font-size:0.8rem">'+t.dato+'</td>'
+        +'<td><strong>'+t.kunde+'</strong><div style="color:var(--muted);font-size:0.78rem">'+t.adresse+'</div></td>'
+        +'<td style="color:var(--muted);font-size:0.82rem">'+t.adresse+'</td>'
+        +'<td><span class="badge b-blue">'+(l.eak||'–')+'</span></td>'
+        +'<td>'+(l.label||'–')+'</td>'
+        +'<td>'+l.tons+' t</td>'
+        +'<td>'+(l.anlaeg||'–')+'</td>'
+        +'<td style="color:var(--muted)">'+(anlaegBy||'–')+'</td>'
+        +'<td style="color:var(--muted)">'+t.chauffoer+'</td>'
+        +'</tr>';
+    });
+  });
+  document.getElementById('t-waste').innerHTML=html||'<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">Ingen afhentninger endnu</td></tr>';
+}
+
+function openModal(){
+  var klar=trips.filter(function(t){return t.status==='faktura';});
+  var liste=document.getElementById('eco-ture-liste');
+  liste.innerHTML='';
+  if(!klar.length){liste.innerHTML='<p style="color:var(--muted);font-size:0.85rem">Ingen ture klar til fakturering</p>';
+  } else {
+    klar.forEach(function(t){
+      var row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;';
+      var chk=document.createElement('input');chk.type='checkbox';chk.checked=true;chk.id='eco-chk-'+t.id;chk.style.cssText='width:auto;cursor:pointer;accent-color:var(--accent)';
+      var lbl=document.createElement('label');lbl.htmlFor='eco-chk-'+t.id;lbl.style.cssText='cursor:pointer;font-size:0.88rem;flex:1';
+      lbl.innerHTML='<strong>'+t.kunde+'</strong> <span style="color:var(--muted)">'+t.dato+'</span> · <span style="color:var(--muted)">'+t.adresse+'</span> · '+t.tons.toFixed(1)+' t';
+      row.appendChild(chk);row.appendChild(lbl);
+      row.onclick=function(e){if(e.target!==chk)chk.checked=!chk.checked;};
+      liste.appendChild(row);
+    });
+  }
+  document.getElementById('eco-status').textContent='';
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+var ECO_APP_SECRET = '5Lu77emj6PYgq6lQM3NdUPjBzob8B49EMqNftdLJk5U';
+var ECO_GRANT_TOKEN = 'PUe2MhaGtps2mpatpW6YYeeI94ZV477i1c0BPVrSDLw';
+var ECO_BASE = 'https://restapi.e-conomic.com';
+
+async function ecoGet(path) {
+  var res = await fetch(ECO_BASE + path, {
+    headers: {'X-AppSecretToken': ECO_APP_SECRET, 'X-AgreementGrantToken': ECO_GRANT_TOKEN, 'Content-Type': 'application/json'}
+  });
+  if (!res.ok) { console.error('eco GET fejl', await res.text()); return null; }
+  return await res.json();
+}
+
+async function ecoPost(path, body) {
+  var res = await fetch(ECO_BASE + path, {
+    method: 'POST',
+    headers: {'X-AppSecretToken': ECO_APP_SECRET, 'X-AgreementGrantToken': ECO_GRANT_TOKEN, 'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
+  });
+  var txt = await res.text();
+  if (!res.ok) { console.error('eco POST fejl', txt); return null; }
+  return JSON.parse(txt);
+}
+
+function getEcoCustomerNumber(kundeNavn) {
+  var k = adminData.kunder.find(function(x){ return x.navn === kundeNavn; });
+  return k && k.econr ? parseInt(k.econr) : null;
+}
+
+async function getEcoDefaults() {
+  var terms = await ecoGet('/payment-terms');
+  var termsNum = terms && terms.collection && terms.collection[0] ? terms.collection[0].paymentTermsNumber : 1;
+  // Hent layouts fra e-conomic
+  var layouts = await ecoGet('/layouts');
+  var layoutNum = 21; // DK. std. m. bankoplys. 1.8
+  if (layouts && layouts.collection && layouts.collection.length > 0) {
+    layoutNum = layouts.collection[0].layoutNumber;
+  }
+  return { termsNum: termsNum, layoutNum: layoutNum };
+}
+
+async function sendTurToEco(tur, defaults) {
+  var customerNumber = getEcoCustomerNumber(tur.kunde);
+  if (!customerNumber) {
+    console.warn('Kunde ikke fundet i e-conomic:', tur.kunde);
+    return false;
+  }
+
+  var lines = [];
+  var lineNum = 1;
+
+  // Afhentningslæs
+  (tur.afhentLaes || []).forEach(function(l) {
+    var affObj = adminData.affaldstyper.find(function(x){return x.eak===l.eak;});
+    var affVarenr = affObj ? (parseInt(affObj.varenr)||1) : 1;
+    if (l.tons > 0) {
+      lines.push({
+        lineNumber: lineNum++,
+        sortKey: lineNum,
+        description: l.beskrivelse || (l.label + (l.anlaeg ? ' – leveret til ' + l.anlaeg : '')),
+        unit: {unitNumber: 1},
+        quantity: l.tons,
+        unitNetPrice: l.pris_ton || 0,
+        discountPercentage: 0,
+        product: {productNumber: String(affVarenr)}
+      });
+    }
+    if (l.timer > 0) {
+      var koerObj = adminData.koeretoej.find(function(x){return x.navn===l.koeretoej;});
+      var koerVarenr = koerObj ? (parseInt(koerObj.varenr)||1) : 1;
+      var timePris = l.pris_time || getKoerPris(l.koeretoej);
+      lines.push({
+        lineNumber: lineNum++,
+        sortKey: lineNum,
+        description: l.koeretoej + (l.beskrivelse ? ' – ' + l.beskrivelse : ''),
+        unit: {unitNumber: 1},
+        quantity: l.timer,
+        unitNetPrice: timePris || 0,
+        discountPercentage: 0,
+        product: {productNumber: String(koerVarenr)}
+      });
+    }
+  });
+
+  // Leveringslæs
+  (tur.levLaes || []).forEach(function(l) {
+    var levObj = adminData.leveringstyper.find(function(x){return x.navn===l.label;});
+    var levVarenr = levObj ? (parseInt(levObj.varenr)||1) : 1;
+    if (l.tons > 0) {
+      lines.push({
+        lineNumber: lineNum++,
+        sortKey: lineNum,
+        description: l.beskrivelse || l.label,
+        unit: {unitNumber: 1},
+        quantity: l.tons,
+        unitNetPrice: l.pris_ton || 0,
+        discountPercentage: 0,
+        product: {productNumber: String(levVarenr)}
+      });
+    }
+    if (l.timer > 0) {
+      var koerObj2 = adminData.koeretoej.find(function(x){return x.navn===l.koeretoej;});
+      var koerVarenr2 = koerObj2 ? (parseInt(koerObj2.varenr)||1) : 1;
+      var timePris2 = l.pris_time || getKoerPris(l.koeretoej);
+      lines.push({
+        lineNumber: lineNum++,
+        sortKey: lineNum,
+        description: l.koeretoej + (l.beskrivelse ? ' – ' + l.beskrivelse : ''),
+        unit: {unitNumber: 1},
+        quantity: l.timer,
+        unitNetPrice: timePris2 || 0,
+        discountPercentage: 0,
+        product: {productNumber: String(koerVarenr2)}
+      });
+    }
+  });
+
+  // Diverse
+  (tur.diversePoster || []).forEach(function(d) {
+    var koerObjD = adminData.koeretoej.find(function(x){return x.navn===d.koeretoej;});
+    var koerVarenrD = koerObjD ? (parseInt(koerObjD.varenr)||1) : 1;
+    var dPris = getKoerPris(d.koeretoej);
+    if (d.timer > 0) {
+      lines.push({
+        lineNumber: lineNum++,
+        sortKey: lineNum,
+        description: d.desc + (d.koeretoej ? ' – ' + d.koeretoej : ''),
+        unit: {unitNumber: 1},
+        quantity: d.timer,
+        unitNetPrice: dPris || 0,
+        discountPercentage: 0,
+        product: {productNumber: String(koerVarenrD)}
+      });
+    }
+  });
+
+  if (!lines.length) return false;
+
+  var invoice = {
+    date: tur.dato,
+    currency: 'DKK',
+    paymentTerms: {paymentTermsNumber: defaults.termsNum},
+    customer: {customerNumber: customerNumber},
+    recipient: {name: tur.kunde, vatZone: {vatZoneNumber: 1}},
+    layout: {layoutNumber: defaults.layoutNum},
+    lines: lines,
+    notes: {heading: 'Sag: ' + (tur.adresse || tur.kunde), textLine1: tur.note || ''}
+  };
+
+
+  var result = await ecoPost('/invoices/drafts', invoice);
+  if (!result) return false;
+
+  // Vedhæft billeder markeret "til kunde"
+  var tilKunde = (tur.billeder||[]).filter(function(b){return b.til_kunde;});
+  if (tilKunde.length && result.draftInvoiceNumber) {
+    for (var bi=0; bi<tilKunde.length; bi++) {
+      var imgUrl = getImageUrl(tilKunde[bi].path);
+      try {
+        var imgResp = await fetch(imgUrl);
+        var imgBlob = await imgResp.blob();
+        var reader = new FileReader();
+        var b64 = await new Promise(function(res){
+          reader.onload=function(e){res(e.target.result.split(',')[1]);};
+          reader.readAsDataURL(imgBlob);
+        });
+        var ext = tilKunde[bi].path.split('.').pop().toLowerCase();
+        var mime = ext==='png'?'image/png':'image/jpeg';
+        await ecoPost('/invoices/drafts/'+result.draftInvoiceNumber+'/attachments', {
+          displayName: 'Billede '+(bi+1),
+          file: b64,
+          mimeType: mime
+        });
+      } catch(e){ console.warn('Billede vedhæftning fejlede:', e); }
+    }
+  }
+
+  return true;
+}
+
+async function confirmEco() {
+  var klar = trips.filter(function(t){return t.status==='faktura';});
+  // Only send checked ones
+  var valgte = klar.filter(function(t){
+    var chk=document.getElementById('eco-chk-'+t.id);
+    return chk && chk.checked;
+  });
+  if (!valgte.length) { alert('Ingen ture valgt.'); return; }
+
+  var statusEl = document.getElementById('eco-status');
+  if (statusEl) statusEl.textContent = 'Sender ' + valgte.length + ' faktura(er)...';
+
+  var defaults = await getEcoDefaults();
+  var ok = 0; var fejl = [];
+
+  for (var i = 0; i < valgte.length; i++) {
+    var success = await sendTurToEco(valgte[i], defaults);
+    if (success) {
+      await sbUpdate('ture', valgte[i].id, {status:'sendt'});
+      valgte[i].status = 'sendt';
+      ok++;
+    } else {
+      fejl.push(valgte[i].kunde);
+    }
+  }
+
+  closeModal(); renderAllSubtabs();
+  if (fejl.length) {
+    alert('Sendt: ' + ok + ' fakturaer.\nFejl (kunde ikke fundet i e-conomic): ' + fejl.join(', '));
+  } else {
+    alert('✅ ' + ok + ' kladdefakturaer sendt til e-conomic!');
+  }
+}
+
+function exportCSV(){
+  var rows=[['Dato','Kunde','Adresse','EAK-kode','Affaldstype','Tons','Modtageanlæg','By','Chauffør']];
+  trips.forEach(function(t){
+    if(t.status==='slettet')return;
+    (t.afhentLaes||[]).forEach(function(l){
+      var aObj=adminData.anlaeg.find(function(a){return a.navn===l.anlaeg;});
+      rows.push([t.dato,t.kunde,t.adresse,l.eak||'',l.label||'',l.tons,l.anlaeg||'',aObj?aObj.by||'':'',t.chauffoer]);
+    });
+  });
+  var csv=rows.map(function(r){return r.join(';');}).join('\n');
+  var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='affaldsregister.csv';a.click();
+}
+
+// ADMIN
+var adminCfg={
+  kunder:{fields:['navn','adresse','econr'],inputs:['in-kunde-navn','in-kunde-adresse','in-kunde-econr']},
+  chauffoerer:{fields:['navn','tlf'],inputs:['in-chauf-navn','in-chauf-tlf']},
+  affaldstyper:{fields:['navn','eak','pris','varenr'],inputs:['in-aff-navn','in-aff-eak','in-aff-pris','in-aff-varenr']},
+  leveringstyper:{fields:['navn','pris','varenr'],inputs:['in-lev-navn','in-lev-pris','in-lev-varenr']},
+  anlaeg:{fields:['navn','by'],inputs:['in-anlaeg-navn','in-anlaeg-by']},
+  koeretoej:{fields:['navn','pris','varenr'],inputs:['in-koer-navn','in-koer-pris','in-koer-varenr']}
+};
+
+async function adminAdd(key){
+  var cfg=adminCfg[key];var item={};
+  for(var j=0;j<cfg.fields.length;j++){
+    var el=document.getElementById(cfg.inputs[j]);var val=el?el.value.trim():'';
+    if(!val&&j===0){alert('Udfyld mindst det første felt.');return;}
+    item[cfg.fields[j]]=val||'';if(el)el.value='';
+  }
+  if(item.pris!==undefined)item.pris=parseFloat(item.pris)||0;
+  var res=await sbInsert(key,item);if(res&&res[0])item.id=res[0].id;
+  adminData[key].push(item);renderAdminLists();refreshSelects();rebuildLaes();
+}
+
+function openSletModal(key,idx,navn){
+  document.getElementById('slet-tekst').textContent=navn?'Er du sikker på, at du vil slette "'+navn+'"?':'Er du sikker på, at du vil slette dette?';
+  document.getElementById('slet-bekraeft').onclick=async function(){
+    var item=adminData[key][idx];if(item&&item.id)await sbDelete(key,item.id);
+    adminData[key].splice(idx,1);renderAdminLists();refreshSelects();rebuildLaes();closeSletModal();
+  };
+  document.getElementById('slet-modal').classList.add('show');
+}
+
+function renderAdminList(key,containerId){
+  var container=document.getElementById(containerId);var items=adminData[key];
+  if(!items||!items.length){container.innerHTML='<p class="empty-msg">Ingen tilføjet endnu.</p>';return;}
+  var cfg=adminCfg[key];container.innerHTML='';
+  for(var idx=0;idx<items.length;idx++){
+    var item=items[idx];var parts=[];
+    for(var fi=0;fi<cfg.fields.length;fi++){
+      var f=cfg.fields[fi],v=item[f]||'';
+      if(f==='pris'){if(parseFloat(v)>0)parts.push('kr. '+v+'/ton');}
+      else if(f==='tlf'){if(v)parts.push('tlf: '+v);}
+      else if(f==='varenr'){if(v)parts.push('varenr: '+v);}
+      else if(f==='econr'){if(v)parts.push('e-conomic nr: '+v);}
+      else if(v)parts.push(v);
+    }
+    var row=document.createElement('div');row.className='admin-item';
+    var txt=document.createElement('span');txt.textContent=parts.join(' · ');
+    var btns=document.createElement('div');btns.style.cssText='display:flex;gap:6px';
+    var editBtn=document.createElement('button');editBtn.className='btn-sm';editBtn.textContent='✏️ Ret';editBtn.type='button';
+    editBtn.style.cssText='font-size:0.75rem;padding:4px 10px';
+    (function(k,i){editBtn.onclick=function(){openEditModal(k,i);};})(key,idx);
+    var delBtn=document.createElement('button');delBtn.className='btn-del';delBtn.textContent='✕ Slet';delBtn.type='button';
+    (function(k,i){delBtn.onclick=function(){openSletModal(k,i,items[i]?items[i].navn:'');};})(key,idx);
+    btns.appendChild(editBtn);btns.appendChild(delBtn);
+    row.appendChild(txt);row.appendChild(btns);container.appendChild(row);
+  }
+}
+
+function renderAdminLists(){
+  renderAdminList('kunder','list-kunder');renderAdminList('chauffoerer','list-chauffoerer');
+  renderAdminList('affaldstyper','list-affaldstyper');renderAdminList('leveringstyper','list-leveringstyper');
+  renderAdminList('anlaeg','list-anlaeg');renderAdminList('koeretoej','list-koeretoej');
+}
+
+var adminFieldLabels={
+  navn:'Navn',adresse:'Adresse',econr:'Kundenr. i e-conomic',tlf:'Telefon',
+  eak:'EAK-kode',pris:'Pris pr. ton (kr.)',varenr:'Varenr. i e-conomic',by:'By'
+};
+
+function openEditModal(key,idx){
+  var cfg=adminCfg[key];
+  var item=adminData[key][idx];
+  document.getElementById('edit-modal-title').textContent='✏️ Rediger '+item.navn;
+  var fields=document.getElementById('edit-modal-fields');
+  fields.innerHTML='';
+  cfg.fields.forEach(function(f){
+    var fg=document.createElement('div');fg.className='fg';
+    var lbl=document.createElement('label');lbl.textContent=adminFieldLabels[f]||f;
+    var inp=document.createElement('input');
+    inp.type=(f==='pris'||f==='varenr'||f==='econr')?'number':'text';
+    inp.id='edit-field-'+f;
+    inp.value=item[f]||'';
+    inp.style.marginBottom='0';
+    fg.appendChild(lbl);fg.appendChild(inp);fields.appendChild(fg);
+  });
+  document.getElementById('edit-save-btn').onclick=async function(){
+    var updated={};
+    cfg.fields.forEach(function(f){
+      var el=document.getElementById('edit-field-'+f);
+      var val=el?el.value.trim():'';
+      if(f==='pris'||f==='varenr'||f==='econr') val=parseFloat(val)||0;
+      updated[f]=val;
+    });
+    if(item.id) await sbUpdate(key,item.id,updated);
+    Object.assign(adminData[key][idx],updated);
+    renderAdminLists();refreshSelects();rebuildLaes();
+    closeEditModal();
+  };
+  document.getElementById('edit-modal').classList.add('show');
+}
+
+function closeEditModal(){document.getElementById('edit-modal').classList.remove('show');}
+
+function refreshSelects(){
+  var kEl=document.getElementById('f-kunde');
+  if(kEl){var kv=kEl.value;kEl.innerHTML='<option value="">Vælg kunde...</option>';adminData.kunder.forEach(function(k){var o=document.createElement('option');o.textContent=k.navn;kEl.appendChild(o);});kEl.value=kv;}
+  var cEl=document.getElementById('f-chauffoer');
+  if(cEl){var cv=cEl.value;cEl.innerHTML='';adminData.chauffoerer.forEach(function(c){var o=document.createElement('option');o.textContent=c.navn;cEl.appendChild(o);});cEl.value=cv;}
+}
+
+function rebuildLaes(){
+  buildLaes('afhent',parseInt(document.getElementById('dd-afhent').value)||0);
+  buildLaes('lev',parseInt(document.getElementById('dd-lev').value)||0);
+}
+
+// INIT
+async function init(){
+  document.getElementById('f-dato').value=new Date().toISOString().split('T')[0];
+  var tables=['kunder','chauffoerer','affaldstyper','leveringstyper','anlaeg','koeretoej'];
+  for(var i=0;i<tables.length;i++){var d=await sbGet(tables[i],'order=oprettet.asc');if(d)adminData[tables[i]]=d;}
+  refreshSelects();buildLaes('afhent',1);buildLaes('lev',0);
+}
+init();
+</script>
+</body>
+</html>
