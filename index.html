@@ -1186,17 +1186,40 @@ function openModal(){
   var klar=trips.filter(function(t){return t.status==='faktura';});
   var liste=document.getElementById('eco-ture-liste');
   liste.innerHTML='';
-  if(!klar.length){liste.innerHTML='<p style="color:var(--muted);font-size:0.85rem">Ingen ture klar til fakturering</p>';
+  if(!klar.length){
+    liste.innerHTML='<p style="color:var(--muted);font-size:0.85rem">Ingen ture klar til fakturering</p>';
   } else {
+    var grupper=[];
     klar.forEach(function(t){
-      var row=document.createElement('div');
-      row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;';
-      var chk=document.createElement('input');chk.type='checkbox';chk.checked=true;chk.id='eco-chk-'+t.id;chk.style.cssText='width:auto;cursor:pointer;accent-color:var(--accent)';
-      var lbl=document.createElement('label');lbl.htmlFor='eco-chk-'+t.id;lbl.style.cssText='cursor:pointer;font-size:0.88rem;flex:1';
-      lbl.innerHTML='<strong>'+t.kunde+'</strong> <span style="color:var(--muted)">'+t.dato+'</span> · <span style="color:var(--muted)">'+t.adresse+'</span> · '+t.tons.toFixed(1)+' t';
-      row.appendChild(chk);row.appendChild(lbl);
-      row.onclick=function(e){if(e.target!==chk)chk.checked=!chk.checked;};
-      liste.appendChild(row);
+      var noegle=t.kunde+'||'+t.adresse;
+      var g=grupper.find(function(x){return x.noegle===noegle;});
+      if(g){g.ture.push(t);}else{grupper.push({noegle:noegle,kunde:t.kunde,adresse:t.adresse,ture:[t]});}
+    });
+    grupper.forEach(function(g){
+      var erGruppe=g.ture.length>1;
+      var box=document.createElement('div');
+      box.style.cssText='border:1px solid '+(erGruppe?'rgba(245,166,35,0.5)':'var(--border)')+';border-radius:10px;margin-bottom:10px;overflow:hidden;';
+      var hdr=document.createElement('div');
+      hdr.style.cssText='padding:10px 14px;background:'+(erGruppe?'rgba(245,166,35,0.08)':'rgba(255,255,255,0.02)')+';';
+      var totalTons=g.ture.reduce(function(s,t){return s+(t.tons||0);},0);
+      var turtypeTag=g.ture[0].turtype==='Tilbagevendende'?'<span style="font-size:0.7rem;color:#818cf8;background:rgba(129,140,248,0.15);border:1px solid rgba(129,140,248,0.3);padding:1px 7px;border-radius:20px;margin-left:6px">Tilbagevendende</span>':'';
+      hdr.innerHTML=(erGruppe?'<div style="font-size:0.7rem;font-weight:700;color:var(--accent);letter-spacing:.5px;margin-bottom:4px">SAMLET FAKTURA (' + g.ture.length + ' ture)</div>':'' )
+        +'<span style="font-weight:700">'+g.kunde+'</span>'
+        +'<span style="color:var(--muted);font-size:0.82rem;margin-left:8px">'+g.adresse+'</span>'
+        +turtypeTag
+        +'<span style="float:right;color:var(--muted);font-size:0.82rem">'+totalTons.toFixed(1)+' t total</span>';
+      box.appendChild(hdr);
+      g.ture.forEach(function(t){
+        var row=document.createElement('div');
+        row.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 14px 8px '+(erGruppe?'24px':'14px')+';border-top:1px solid var(--border);cursor:pointer;';
+        var chk=document.createElement('input');chk.type='checkbox';chk.checked=true;chk.id='eco-chk-'+t.id;chk.style.cssText='width:auto;cursor:pointer;accent-color:var(--accent)';
+        var lbl=document.createElement('label');lbl.htmlFor='eco-chk-'+t.id;lbl.style.cssText='cursor:pointer;font-size:0.84rem;flex:1';
+        lbl.innerHTML='<span style="font-family:DM Mono,monospace;color:var(--muted)">'+t.dato+'</span> &nbsp;'+t.tons.toFixed(1)+' t'+(t.timer?' &middot; '+t.timer+' t kørsel':'');
+        row.appendChild(chk);row.appendChild(lbl);
+        row.onclick=function(e){if(e.target!==chk)chk.checked=!chk.checked;};
+        box.appendChild(row);
+      });
+      liste.appendChild(box);
     });
   }
   document.getElementById('eco-status').textContent='';
@@ -1452,13 +1475,13 @@ async function sendTurGruppeToEco(ture, defaults) {
       var affVarenr=affObj?(parseInt(affObj.varenr)||1):1;
       if(l.tons>0&&!kundenBetaler){
         var affNavn=(affObj&&affObj.navn)?affObj.navn:(l.label||'Affald');
-        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr+' '+affNavn,unit:{unitNumber:UNIT_TONS},quantity:l.tons,unitNetPrice:l.pris_ton||0,discountPercentage:0,product:{productNumber:String(affVarenr)}});
+        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr+' '+affNavn,quantity:l.tons,unitNetPrice:l.pris_ton||0,discountPercentage:0,product:{productNumber:String(affVarenr)}});
       }
       if(l.timer>0){
         var koerObj=adminData.koeretoej.find(function(x){return x.navn===l.koeretoej;});
         var koerVarenr=koerObj?(parseInt(koerObj.varenr)||1):1;
         var timePris=kundenBetaler?0:(l.pris_time||getKoerPris(l.koeretoej));
-        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr+' '+(l.koeretoej||'Kørsel'),unit:{unitNumber:UNIT_TIMER},quantity:l.timer,unitNetPrice:timePris,discountPercentage:0,product:{productNumber:String(koerVarenr)}});
+        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr+' '+(l.koeretoej||'Kørsel'),quantity:l.timer,unitNetPrice:timePris,discountPercentage:0,product:{productNumber:String(koerVarenr)}});
       }
     });
     (tur.levLaes||[]).forEach(function(l){
@@ -1467,13 +1490,13 @@ async function sendTurGruppeToEco(ture, defaults) {
       var levVarenr=levObj?(parseInt(levObj.varenr)||1):1;
       var levNavn=(levObj&&levObj.navn)?levObj.navn:(l.label||'Levering');
       if(l.tons>0&&!kundenBetaler){
-        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr+' '+levNavn,unit:{unitNumber:UNIT_TONS},quantity:l.tons,unitNetPrice:l.pris_ton||0,discountPercentage:0,product:{productNumber:String(levVarenr)}});
+        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr+' '+levNavn,quantity:l.tons,unitNetPrice:l.pris_ton||0,discountPercentage:0,product:{productNumber:String(levVarenr)}});
       }
       if(l.timer>0){
         var koerObj2=adminData.koeretoej.find(function(x){return x.navn===l.koeretoej;});
         var koerVarenr2=koerObj2?(parseInt(koerObj2.varenr)||1):1;
         var timePris2=kundenBetaler?0:(l.pris_time||getKoerPris(l.koeretoej));
-        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr+' '+(l.koeretoej||'Kørsel'),unit:{unitNumber:UNIT_TIMER},quantity:l.timer,unitNetPrice:timePris2,discountPercentage:0,product:{productNumber:String(koerVarenr2)}});
+        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr+' '+(l.koeretoej||'Kørsel'),quantity:l.timer,unitNetPrice:timePris2,discountPercentage:0,product:{productNumber:String(koerVarenr2)}});
       }
     });
   });
