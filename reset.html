@@ -77,7 +77,7 @@ function getParams() {
 
 var accessToken = null;
 
-(function init() {
+(async function init() {
   var params = getParams();
 
   if (params.error) {
@@ -90,9 +90,31 @@ var accessToken = null;
     return;
   }
 
+  if (params.token_hash && params.type === 'recovery') {
+    // Exchange token_hash for access_token via Supabase
+    try {
+      var verifyRes = await fetch(SUPABASE_URL + '/auth/v1/verify', {
+        method: 'POST',
+        headers: {'apikey': SUPABASE_KEY, 'Content-Type': 'application/json'},
+        body: JSON.stringify({token_hash: params.token_hash, type: 'recovery'})
+      });
+      var verifyData = await verifyRes.json();
+      if (verifyData.access_token) {
+        accessToken = verifyData.access_token;
+        history.replaceState(null, '', window.location.pathname);
+        return;
+      } else {
+        throw new Error(verifyData.message || 'Verifikation fejlede');
+      }
+    } catch(e) {
+      document.getElementById('fields').style.display = 'none';
+      showMsg('Linket er udløbet eller ugyldigt. Bed om et nyt.', 'error');
+      return;
+    }
+  }
+  
   if (params.access_token && params.type === 'recovery') {
     accessToken = params.access_token;
-    // Clear sensitive data from URL immediately
     history.replaceState(null, '', window.location.pathname);
     return;
   }
