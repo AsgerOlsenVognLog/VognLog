@@ -69,7 +69,7 @@ select option{background:var(--surface2);}
 .btn-del{padding:4px 10px;border-radius:6px;border:1px solid var(--red);background:transparent;color:var(--red);font-size:0.75rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
 .btn-kontrol{padding:7px 13px;border-radius:7px;border:none;background:var(--blue);color:#fff;font-size:0.8rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
 .btn-faktura{padding:7px 13px;border-radius:7px;border:none;background:var(--green);color:#000;font-size:0.8rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
-.banner{display:none;background:rgba(62,207,142,.12);border:1px solid var(--green);border-radius:10px;padding:14px 18px;color:var(--green);font-weight:600;margin-bottom:16px;align-items:center;gap:10px;}
+.banner{display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);border-radius:12px;padding:14px 24px;color:#000;font-weight:700;font-size:0.95rem;align-items:center;gap:10px;z-index:9998;box-shadow:0 4px 24px rgba(62,207,142,.4);white-space:nowrap;}
 .banner.show{display:flex;}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
 .stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;}
@@ -184,7 +184,6 @@ tr:hover td{background:rgba(245,166,35,.03);}
       <div class="rg" id="rg-turtype">
         <div class="rb on" onclick="pickRb('rg-turtype',this)">Engangskørsel</div>
         <div class="rb" onclick="pickRb('rg-turtype',this)">Tilbagevendende</div>
-        <div class="rb" onclick="pickRb('rg-turtype',this)">Del af fast aftale</div>
       </div>
     </div>
   </div>
@@ -311,7 +310,7 @@ tr:hover td{background:rgba(245,166,35,.03);}
     <button class="btn-eco" onclick="exportCSV()">⬇ Eksportér til Excel / CSV</button>
   </div>
   <div class="tbl-wrap">
-    <table><thead><tr><th>Dato</th><th>Kunde</th><th>Adresse</th><th>EAK-kode</th><th>Affaldstype</th><th>Tons</th><th>Modtageanlæg</th><th>By</th><th>Chauffør</th></tr></thead>
+    <table><thead><tr><th>Dato</th><th>Kunde</th><th>Adresse</th><th>EAK-kode</th><th>Affaldstype</th><th>Tons</th><th>Modtageanlæg</th><th>By</th><th>Chauffør</th><th></th></tr></thead>
     <tbody id="t-waste"></tbody></table>
   </div>
 </div>
@@ -398,8 +397,12 @@ tr:hover td{background:rgba(245,166,35,.03);}
 <div class="overlay" id="varer-modal">
   <div class="modal" style="max-width:560px">
     <h3 id="varer-modal-title" style="color:var(--accent)">🔄 Vælg varer fra e-conomic</h3>
-    <p style="color:var(--muted);font-size:0.85rem;margin:8px 0 14px">Sæt kryds ved de varer du vil tilføje:</p>
-    <div id="varer-liste" style="max-height:340px;overflow-y:auto;margin-bottom:14px"></div>
+    <p style="color:var(--muted);font-size:0.85rem;margin:8px 0 10px">Sæt kryds ved de varer du vil tilføje:</p>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="btn-sm" style="font-size:0.78rem" onclick="varerValgAlle(true)">Vælg alle</button>
+      <button class="btn-sm" style="font-size:0.78rem" onclick="varerValgAlle(false)">Fravælg alle</button>
+    </div>
+    <div id="varer-liste" style="max-height:320px;overflow-y:auto;margin-bottom:14px"></div>
     <div id="varer-status" style="font-size:0.85rem;color:var(--green);min-height:18px;margin-bottom:8px"></div>
     <div class="modal-btns">
       <button class="btn-sm" onclick="document.getElementById('varer-modal').classList.remove('show')">Annullér</button>
@@ -1126,16 +1129,19 @@ function closeSletModal(){document.getElementById('slet-modal').classList.remove
 
 // WASTE - kun affald, ingen timer, med by
 function renderWaste(){
-  var html='';
+  var tbody=document.getElementById('t-waste');
+  tbody.innerHTML='';
+  var hasRows=false;
   trips.forEach(function(t){
     if(t.status==='slettet'||t.status==='input'||t.status==='kontrol'||t.status==='faktura')return;
     (t.afhentLaes||[]).forEach(function(l){
+      hasRows=true;
       var anlaegBy='';
       var aObj=adminData.anlaeg.find(function(a){return a.navn===l.anlaeg;});
       if(aObj&&aObj.by) anlaegBy=aObj.by;
-      html+='<tr>'
-        +'<td style="font-family:DM Mono,monospace;font-size:0.8rem">'+t.dato+'</td>'
-        +'<td><strong>'+t.kunde+'</strong><div style="color:var(--muted);font-size:0.78rem">'+t.adresse+'</div></td>'
+      var wtr=document.createElement('tr');
+      wtr.innerHTML='<td style="font-family:DM Mono,monospace;font-size:0.8rem">'+t.dato+'</td>'
+        +'<td><strong>'+t.kunde+'</strong></td>'
         +'<td style="color:var(--muted);font-size:0.82rem">'+t.adresse+'</td>'
         +'<td><span class="badge b-blue">'+(l.eak||'–')+'</span></td>'
         +'<td>'+(l.label||'–')+'</td>'
@@ -1143,10 +1149,15 @@ function renderWaste(){
         +'<td>'+(l.anlaeg||'–')+'</td>'
         +'<td style="color:var(--muted)">'+(anlaegBy||'–')+'</td>'
         +'<td style="color:var(--muted)">'+t.chauffoer+'</td>'
-        +'</tr>';
+        +'<td></td>';
+      var wdel=wtr.querySelector('td:last-child');
+      var wbtn=document.createElement('button');wbtn.className='btn-del';wbtn.textContent='Slet';
+      (function(tid,tnavn){wbtn.onclick=function(){promptSlet(tid,tnavn);};})(t.id,t.kunde);
+      wdel.appendChild(wbtn);
+      tbody.appendChild(wtr);
     });
   });
-  document.getElementById('t-waste').innerHTML=html||'<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">Ingen afhentninger endnu</td></tr>';
+  if(!hasRows) tbody.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:24px">Ingen afhentninger endnu</td></tr>';
 }
 
 function openModal(){
@@ -1219,34 +1230,45 @@ async function sendTurToEco(tur, defaults) {
 
   var lines = [];
   var lineNum = 1;
+  // unit 57 = timer, unit 15 = tons (standard e-conomic enheder)
+  var UNIT_TIMER = 57;
+  var UNIT_TONS = 15;
+
+  // Helper: format dato as dd-mm-yyyy
+  function fmtDato(d){ var p=d.split('-'); return p.length===3?p[2]+'-'+p[1]+'-'+p[0]:d; }
+  var datoStr = fmtDato(tur.dato);
 
   // Afhentningslæs
   (tur.afhentLaes || []).forEach(function(l) {
+    var kundenBetaler = l.betalingstype === 'Kunden betaler';
     var affObj = adminData.affaldstyper.find(function(x){return x.eak===l.eak;});
     var affVarenr = affObj ? (parseInt(affObj.varenr)||1) : 1;
-    if (l.tons > 0) {
+    // Tons linje - kun hvis ikke "Kunden betaler"
+    if (l.tons > 0 && !kundenBetaler) {
+      var affNavn = (affObj && affObj.navn) ? affObj.navn : (l.label || 'Affald');
       lines.push({
         lineNumber: lineNum++,
         sortKey: lineNum,
-        description: l.beskrivelse || (l.label + (l.anlaeg ? ' – leveret til ' + l.anlaeg : '')),
-        unit: {unitNumber: 1},
+        description: datoStr + ' ' + affNavn,
+        unit: {unitNumber: UNIT_TONS},
         quantity: l.tons,
         unitNetPrice: l.pris_ton || 0,
         discountPercentage: 0,
         product: {productNumber: String(affVarenr)}
       });
     }
+    // Timer linje
     if (l.timer > 0) {
       var koerObj = adminData.koeretoej.find(function(x){return x.navn===l.koeretoej;});
       var koerVarenr = koerObj ? (parseInt(koerObj.varenr)||1) : 1;
-      var timePris = l.pris_time || getKoerPris(l.koeretoej);
+      var timePris = kundenBetaler ? 0 : (l.pris_time || getKoerPris(l.koeretoej));
       lines.push({
         lineNumber: lineNum++,
         sortKey: lineNum,
-        description: l.koeretoej + (l.beskrivelse ? ' – ' + l.beskrivelse : ''),
-        unit: {unitNumber: 1},
+        description: datoStr + ' ' + (l.koeretoej || 'Kørsel'),
+        unit: {unitNumber: UNIT_TIMER},
         quantity: l.timer,
-        unitNetPrice: timePris || 0,
+        unitNetPrice: timePris,
         discountPercentage: 0,
         product: {productNumber: String(koerVarenr)}
       });
@@ -1255,31 +1277,35 @@ async function sendTurToEco(tur, defaults) {
 
   // Leveringslæs
   (tur.levLaes || []).forEach(function(l) {
+    var kundenBetaler = l.betalingstype === 'Kunden betaler';
     var levObj = adminData.leveringstyper.find(function(x){return x.navn===l.label;});
     var levVarenr = levObj ? (parseInt(levObj.varenr)||1) : 1;
-    if (l.tons > 0) {
+    var levNavn = (levObj && levObj.navn) ? levObj.navn : (l.label || 'Levering');
+    // Tons linje - kun hvis ikke "Kunden betaler"
+    if (l.tons > 0 && !kundenBetaler) {
       lines.push({
         lineNumber: lineNum++,
         sortKey: lineNum,
-        description: l.beskrivelse || l.label,
-        unit: {unitNumber: 1},
+        description: datoStr + ' ' + levNavn,
+        unit: {unitNumber: UNIT_TONS},
         quantity: l.tons,
         unitNetPrice: l.pris_ton || 0,
         discountPercentage: 0,
         product: {productNumber: String(levVarenr)}
       });
     }
+    // Timer linje
     if (l.timer > 0) {
       var koerObj2 = adminData.koeretoej.find(function(x){return x.navn===l.koeretoej;});
       var koerVarenr2 = koerObj2 ? (parseInt(koerObj2.varenr)||1) : 1;
-      var timePris2 = l.pris_time || getKoerPris(l.koeretoej);
+      var timePris2 = kundenBetaler ? 0 : (l.pris_time || getKoerPris(l.koeretoej));
       lines.push({
         lineNumber: lineNum++,
         sortKey: lineNum,
-        description: l.koeretoej + (l.beskrivelse ? ' – ' + l.beskrivelse : ''),
-        unit: {unitNumber: 1},
+        description: datoStr + ' ' + (l.koeretoej || 'Kørsel'),
+        unit: {unitNumber: UNIT_TIMER},
         quantity: l.timer,
-        unitNetPrice: timePris2 || 0,
+        unitNetPrice: timePris2,
         discountPercentage: 0,
         product: {productNumber: String(koerVarenr2)}
       });
@@ -1295,8 +1321,8 @@ async function sendTurToEco(tur, defaults) {
       lines.push({
         lineNumber: lineNum++,
         sortKey: lineNum,
-        description: d.desc + (d.koeretoej ? ' – ' + d.koeretoej : ''),
-        unit: {unitNumber: 1},
+        description: datoStr + ' ' + (d.koeretoej || d.desc || 'Kørsel'),
+        unit: {unitNumber: UNIT_TIMER},
         quantity: d.timer,
         unitNetPrice: dPris || 0,
         discountPercentage: 0,
@@ -1351,7 +1377,6 @@ async function sendTurToEco(tur, defaults) {
 
 async function confirmEco() {
   var klar = trips.filter(function(t){return t.status==='faktura';});
-  // Only send checked ones
   var valgte = klar.filter(function(t){
     var chk=document.getElementById('eco-chk-'+t.id);
     return chk && chk.checked;
@@ -1359,28 +1384,112 @@ async function confirmEco() {
   if (!valgte.length) { alert('Ingen ture valgt.'); return; }
 
   var statusEl = document.getElementById('eco-status');
-  if (statusEl) statusEl.textContent = 'Sender ' + valgte.length + ' faktura(er)...';
+  if (statusEl) statusEl.textContent = 'Sender fakturaer...';
 
   var defaults = await getEcoDefaults();
   var ok = 0; var fejl = [];
 
-  for (var i = 0; i < valgte.length; i++) {
-    var success = await sendTurToEco(valgte[i], defaults);
-    if (success) {
-      await sbUpdate('ture', valgte[i].id, {status:'sendt'});
-      valgte[i].status = 'sendt';
-      ok++;
+  // Group "Tilbagevendende" trips with same kunde+adresse into one invoice
+  var grupper = [];
+  var enkelt = [];
+  valgte.forEach(function(t){
+    if(t.turtype === 'Tilbagevendende'){
+      var noegle = t.kunde + '||' + t.adresse;
+      var g = grupper.find(function(x){return x.noegle===noegle;});
+      if(g){ g.ture.push(t); } else { grupper.push({noegle:noegle, ture:[t]}); }
     } else {
-      fejl.push(valgte[i].kunde);
+      enkelt.push(t);
     }
+  });
+
+  // Send individual trips
+  for (var i = 0; i < enkelt.length; i++) {
+    var success = await sendTurToEco(enkelt[i], defaults);
+    if (success) {
+      await sbUpdate('ture', enkelt[i].id, {status:'sendt'});
+      enkelt[i].status = 'sendt'; ok++;
+    } else { fejl.push(enkelt[i].kunde); }
+  }
+
+  // Send grouped tilbagevendende trips as one invoice each
+  for (var j = 0; j < grupper.length; j++) {
+    var g = grupper[j];
+    var success2 = await sendTurGruppeToEco(g.ture, defaults);
+    if (success2) {
+      for(var k=0;k<g.ture.length;k++){
+        await sbUpdate('ture', g.ture[k].id, {status:'sendt'});
+        g.ture[k].status = 'sendt';
+      }
+      ok++;
+    } else { fejl.push(g.ture[0].kunde + ' (tilbagevendende)'); }
   }
 
   closeModal(); renderAllSubtabs();
   if (fejl.length) {
-    alert('Sendt: ' + ok + ' fakturaer.\nFejl (kunde ikke fundet i e-conomic): ' + fejl.join(', '));
+    alert('Sendt: ' + ok + ' fakturaer.\nFejl: ' + fejl.join(', '));
   } else {
     alert('✅ ' + ok + ' kladdefakturaer sendt til e-conomic!');
   }
+}
+
+// Send multiple trips as one grouped invoice
+async function sendTurGruppeToEco(ture, defaults) {
+  if(!ture.length) return false;
+  var customerNumber = getEcoCustomerNumber(ture[0].kunde);
+  if (!customerNumber) return false;
+
+  var lines = [];
+  var lineNum = 1;
+  var UNIT_TIMER = 57; var UNIT_TONS = 15;
+  function fmtDato(d){ var p=d.split('-'); return p.length===3?p[2]+'-'+p[1]+'-'+p[0]:d; }
+
+  ture.forEach(function(tur){
+    var datoStr = fmtDato(tur.dato);
+    (tur.afhentLaes||[]).forEach(function(l){
+      var kundenBetaler = l.betalingstype==='Kunden betaler';
+      var affObj=adminData.affaldstyper.find(function(x){return x.eak===l.eak;});
+      var affVarenr=affObj?(parseInt(affObj.varenr)||1):1;
+      if(l.tons>0&&!kundenBetaler){
+        var affNavn=(affObj&&affObj.navn)?affObj.navn:(l.label||'Affald');
+        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr+' '+affNavn,unit:{unitNumber:UNIT_TONS},quantity:l.tons,unitNetPrice:l.pris_ton||0,discountPercentage:0,product:{productNumber:String(affVarenr)}});
+      }
+      if(l.timer>0){
+        var koerObj=adminData.koeretoej.find(function(x){return x.navn===l.koeretoej;});
+        var koerVarenr=koerObj?(parseInt(koerObj.varenr)||1):1;
+        var timePris=kundenBetaler?0:(l.pris_time||getKoerPris(l.koeretoej));
+        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr+' '+(l.koeretoej||'Kørsel'),unit:{unitNumber:UNIT_TIMER},quantity:l.timer,unitNetPrice:timePris,discountPercentage:0,product:{productNumber:String(koerVarenr)}});
+      }
+    });
+    (tur.levLaes||[]).forEach(function(l){
+      var kundenBetaler=l.betalingstype==='Kunden betaler';
+      var levObj=adminData.leveringstyper.find(function(x){return x.navn===l.label;});
+      var levVarenr=levObj?(parseInt(levObj.varenr)||1):1;
+      var levNavn=(levObj&&levObj.navn)?levObj.navn:(l.label||'Levering');
+      if(l.tons>0&&!kundenBetaler){
+        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr+' '+levNavn,unit:{unitNumber:UNIT_TONS},quantity:l.tons,unitNetPrice:l.pris_ton||0,discountPercentage:0,product:{productNumber:String(levVarenr)}});
+      }
+      if(l.timer>0){
+        var koerObj2=adminData.koeretoej.find(function(x){return x.navn===l.koeretoej;});
+        var koerVarenr2=koerObj2?(parseInt(koerObj2.varenr)||1):1;
+        var timePris2=kundenBetaler?0:(l.pris_time||getKoerPris(l.koeretoej));
+        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr+' '+(l.koeretoej||'Kørsel'),unit:{unitNumber:UNIT_TIMER},quantity:l.timer,unitNetPrice:timePris2,discountPercentage:0,product:{productNumber:String(koerVarenr2)}});
+      }
+    });
+  });
+
+  if(!lines.length) return false;
+  var invoice = {
+    date: ture[0].dato,
+    currency: 'DKK',
+    paymentTerms: {paymentTermsNumber: defaults.termsNum},
+    customer: {customerNumber: customerNumber},
+    recipient: {name: ture[0].kunde, vatZone: {vatZoneNumber: 1}},
+    layout: {layoutNumber: defaults.layoutNum},
+    lines: lines,
+    notes: {heading: 'Sag: ' + (ture[0].adresse || ture[0].kunde)}
+  };
+  var result = await ecoPost('/invoices/drafts', invoice);
+  return result !== null;
 }
 
 function exportCSV(){
@@ -1550,6 +1659,12 @@ async function syncVarer(type){
     statusEl.style.color='var(--red)';
     statusEl.textContent='Fejl: '+e.message;
   }
+}
+
+function varerValgAlle(val){
+  var liste=document.getElementById('varer-liste');
+  var chks=liste.querySelectorAll('input[type=checkbox]:not(:disabled)');
+  chks.forEach(function(c){c.checked=val;});
 }
 
 async function gemValgteVarer(){
