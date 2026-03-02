@@ -20,19 +20,6 @@
 .user-info strong{color:var(--text);}
 .btn-logout{padding:6px 12px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.78rem;cursor:pointer;font-family:'DM Sans',sans-serif;}
 .btn-logout:hover{border-color:var(--red);color:var(--red);}
-#login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;}
-#login-screen.hidden{display:none;}
-.login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:400px;}
-.login-logo{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--accent);text-align:center;margin-bottom:8px;}
-.login-logo span{color:var(--text);}
-.login-sub{text-align:center;color:var(--muted);font-size:0.88rem;margin-bottom:32px;}
-.login-error{color:var(--red);font-size:0.85rem;margin-top:10px;text-align:center;min-height:20px;}
-.btn-login{width:100%;padding:14px;background:var(--accent);color:#000;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-top:8px;}
-.btn-login:hover{background:#ffc04d;}
-.user-info{display:flex;align-items:center;gap:10px;font-size:0.85rem;color:var(--muted);}
-.user-info strong{color:var(--text);}
-.btn-logout{padding:6px 12px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.78rem;cursor:pointer;font-family:'DM Sans',sans-serif;}
-.btn-logout:hover{border-color:var(--red);color:var(--red);}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 nav{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
@@ -117,6 +104,10 @@ tr:hover td{background:rgba(245,166,35,.03);}
 .note-box{background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.3);border-radius:8px;padding:10px 14px;font-size:0.85rem;color:var(--text);margin-bottom:8px;line-height:1.5;}
 .note-warning{background:rgba(255,92,92,.1);border:1px solid rgba(255,92,92,.3);border-radius:8px;padding:10px 14px;font-size:0.85rem;color:var(--red);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
 .desc-text{font-size:0.8rem;color:var(--muted);font-style:italic;margin-top:3px;}
+.acc-hdr:hover{background:rgba(255,255,255,0.03);}
+.acc-body{display:block;}
+.acc-body.collapsed{display:none;}
+.acc-arrow.rotated{transform:rotate(-90deg);}
 @media(max-width:620px){.g2,.g3,.stats{grid-template-columns:1fr;}nav{flex-direction:column;gap:12px;}}
 </style>
 </head>
@@ -155,10 +146,6 @@ tr:hover td{background:rgba(245,166,35,.03);}
     <button class="tab" id="tab-office" onclick="showTab('office')">🏢 Kontor</button>
     <button class="tab" id="tab-waste" onclick="showTab('waste')">📋 Affaldsregister</button>
     <button class="tab" id="tab-admin" onclick="showTab('admin')">⚙️ Admin</button>
-  </div>
-  <div class="user-info">
-    <span id="nav-user-name"></span>
-    <button class="btn-logout" onclick="doLogout()">Log ud</button>
   </div>
   <div class="user-info">
     <span id="nav-user-name"></span>
@@ -317,79 +304,109 @@ tr:hover td{background:rgba(245,166,35,.03);}
 
 <!-- ADMIN -->
 <div class="view" id="view-admin">
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="acc-hdr" onclick="toggleAcc(this)" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;user-select:none">
       <div class="card-title green" style="margin-bottom:0">👥 Kunder</div>
-      <button class="btn-eco" onclick="syncKunders()" style="font-size:0.8rem;padding:7px 14px">🔄 Synk fra e-conomic</button>
+      <span class="acc-arrow" style="color:var(--muted);font-size:1.2rem;transition:transform .2s">▾</span>
     </div>
-    <div id="sync-kunder-status" style="font-size:0.82rem;color:var(--green);margin-bottom:8px;min-height:18px"></div>
-    <div id="list-kunder"></div>
-    <div class="g3" style="margin-top:14px">
-      <div class="fg"><label>Kundenavn</label><input type="text" id="in-kunde-navn" placeholder="Fx Hansen Byg A/S"></div>
-      <div class="fg"><label>Adresse</label><input type="text" id="in-kunde-adresse" placeholder="Fx Industrivej 12, Odense"></div>
-      <div class="fg"><label>Kundenr. i e-conomic</label><input type="number" id="in-kunde-econr" placeholder="Fx 1001" min="1"></div>
+    <div class="acc-body" style="padding:0 20px 20px">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+        <button class="btn-eco" onclick="syncKunders()" style="font-size:0.8rem;padding:7px 14px">🔄 Synk fra e-conomic</button>
+      </div>
+      <div id="sync-kunder-status" style="font-size:0.82rem;color:var(--green);margin-bottom:8px;min-height:18px"></div>
+      <div id="list-kunder"></div>
+      <div class="g3" style="margin-top:14px">
+        <div class="fg"><label>Kundenavn</label><input type="text" id="in-kunde-navn" placeholder="Fx Hansen Byg A/S"></div>
+        <div class="fg"><label>Adresse</label><input type="text" id="in-kunde-adresse" placeholder="Fx Industrivej 12, Odense"></div>
+        <div class="fg"><label>Kundenr. i e-conomic</label><input type="number" id="in-kunde-econr" placeholder="Fx 1001" min="1"></div>
+      </div>
+      <button class="btn-sm" onclick="adminAdd('kunder')">+ Tilføj kunde manuelt</button>
     </div>
-    <button class="btn-sm" onclick="adminAdd('kunder')">+ Tilføj kunde manuelt</button>
   </div>
-  <div class="card">
-    <div class="card-title green">🚛 Chauffører</div>
-    <div id="list-chauffoerer"></div>
-    <div class="g2" style="margin-top:14px">
-      <div class="fg"><label>Navn</label><input type="text" id="in-chauf-navn" placeholder="Fx Mikkel Sørensen"></div>
-      <div class="fg"><label>Telefon (valgfrit)</label><input type="text" id="in-chauf-tlf" placeholder="Fx 12 34 56 78"></div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="acc-hdr" onclick="toggleAcc(this)" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;user-select:none">
+      <div class="card-title green" style="margin-bottom:0">🚛 Chauffører</div>
+      <span class="acc-arrow" style="color:var(--muted);font-size:1.2rem;transition:transform .2s">▾</span>
     </div>
-    <button class="btn-sm" onclick="adminAdd('chauffoerer')">+ Tilføj chauffør</button>
+    <div class="acc-body" style="padding:0 20px 20px">
+      <div id="list-chauffoerer"></div>
+      <div class="g2" style="margin-top:14px">
+        <div class="fg"><label>Navn</label><input type="text" id="in-chauf-navn" placeholder="Fx Mikkel Sørensen"></div>
+        <div class="fg"><label>Telefon (valgfrit)</label><input type="text" id="in-chauf-tlf" placeholder="Fx 12 34 56 78"></div>
+      </div>
+      <button class="btn-sm" onclick="adminAdd('chauffoerer')">+ Tilføj chauffør</button>
+    </div>
   </div>
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="acc-hdr" onclick="toggleAcc(this)" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;user-select:none">
       <div class="card-title green" style="margin-bottom:0">♻️ Affaldstyper</div>
-      <button class="btn-eco" onclick="syncVarer('affaldstyper')" style="font-size:0.8rem;padding:7px 14px">🔄 Synk varer fra e-conomic</button>
+      <span class="acc-arrow" style="color:var(--muted);font-size:1.2rem;transition:transform .2s">▾</span>
     </div>
-    <div id="sync-aff-status" style="font-size:0.82rem;color:var(--green);margin-bottom:8px;min-height:18px"></div>
-    <div id="list-affaldstyper"></div>
-    <div class="g2" style="margin-top:14px">
-      <div class="fg"><label>Navn</label><input type="text" id="in-aff-navn" placeholder="Fx Byggeaffald, blandet"></div>
-      <div class="fg"><label>EAK-kode</label><input type="text" id="in-aff-eak" placeholder="Fx 17 01 07"></div>
+    <div class="acc-body" style="padding:0 20px 20px">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+        <button class="btn-eco" onclick="syncVarer('affaldstyper')" style="font-size:0.8rem;padding:7px 14px">🔄 Synk varer fra e-conomic</button>
+      </div>
+      <div id="sync-aff-status" style="font-size:0.82rem;color:var(--green);margin-bottom:8px;min-height:18px"></div>
+      <div id="list-affaldstyper"></div>
+      <div class="g2" style="margin-top:14px">
+        <div class="fg"><label>Navn</label><input type="text" id="in-aff-navn" placeholder="Fx Byggeaffald, blandet"></div>
+        <div class="fg"><label>EAK-kode</label><input type="text" id="in-aff-eak" placeholder="Fx 17 01 07"></div>
+      </div>
+      <div class="g2">
+        <div class="fg"><label>Pris pr. ton (kr.)</label><input type="number" id="in-aff-pris" placeholder="0" min="0"></div>
+        <div class="fg"><label>Varenr. i e-conomic</label><input type="number" id="in-aff-varenr" placeholder="Fx 5" min="1"></div>
+      </div>
+      <button class="btn-sm" onclick="adminAdd('affaldstyper')">+ Tilføj affaldstype</button>
     </div>
-    <div class="g2">
-      <div class="fg"><label>Pris pr. ton (kr.)</label><input type="number" id="in-aff-pris" placeholder="0" min="0"></div>
-      <div class="fg"><label>Varenr. i e-conomic</label><input type="number" id="in-aff-varenr" placeholder="Fx 5" min="1"></div>
-    </div>
-    <button class="btn-sm" onclick="adminAdd('affaldstyper')">+ Tilføj affaldstype</button>
   </div>
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="acc-hdr" onclick="toggleAcc(this)" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;user-select:none">
       <div class="card-title green" style="margin-bottom:0">⬇️ Leveringstyper</div>
-      <button class="btn-eco" onclick="syncVarer('leveringstyper')" style="font-size:0.8rem;padding:7px 14px">🔄 Synk varer fra e-conomic</button>
+      <span class="acc-arrow" style="color:var(--muted);font-size:1.2rem;transition:transform .2s">▾</span>
     </div>
-    <div id="sync-lev-status" style="font-size:0.82rem;color:var(--green);margin-bottom:8px;min-height:18px"></div>
-    <div id="list-leveringstyper"></div>
-    <div class="g3" style="margin-top:14px">
-      <div class="fg"><label>Materiale</label><input type="text" id="in-lev-navn" placeholder="Fx Grus, Sand, Stabilgrus"></div>
-      <div class="fg"><label>Pris pr. ton (kr.)</label><input type="number" id="in-lev-pris" placeholder="0" min="0"></div>
-      <div class="fg"><label>Varenr. i e-conomic</label><input type="number" id="in-lev-varenr" placeholder="Fx 4" min="1"></div>
+    <div class="acc-body" style="padding:0 20px 20px">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+        <button class="btn-eco" onclick="syncVarer('leveringstyper')" style="font-size:0.8rem;padding:7px 14px">🔄 Synk varer fra e-conomic</button>
+      </div>
+      <div id="sync-lev-status" style="font-size:0.82rem;color:var(--green);margin-bottom:8px;min-height:18px"></div>
+      <div id="list-leveringstyper"></div>
+      <div class="g3" style="margin-top:14px">
+        <div class="fg"><label>Materiale</label><input type="text" id="in-lev-navn" placeholder="Fx Grus, Sand, Stabilgrus"></div>
+        <div class="fg"><label>Pris pr. ton (kr.)</label><input type="number" id="in-lev-pris" placeholder="0" min="0"></div>
+        <div class="fg"><label>Varenr. i e-conomic</label><input type="number" id="in-lev-varenr" placeholder="Fx 4" min="1"></div>
+      </div>
+      <button class="btn-sm" onclick="adminAdd('leveringstyper')">+ Tilføj leveringstype</button>
     </div>
-    <button class="btn-sm" onclick="adminAdd('leveringstyper')">+ Tilføj leveringstype</button>
   </div>
-  <div class="card">
-    <div class="card-title green">🏭 Modtageanlæg</div>
-    <div id="list-anlaeg"></div>
-    <div class="g2" style="margin-top:14px">
-      <div class="fg"><label>Navn</label><input type="text" id="in-anlaeg-navn" placeholder="Fx Odense Kraftvarme A/S"></div>
-      <div class="fg"><label>By</label><input type="text" id="in-anlaeg-by" placeholder="Fx Odense"></div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="acc-hdr" onclick="toggleAcc(this)" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;user-select:none">
+      <div class="card-title green" style="margin-bottom:0">🏭 Modtageanlæg</div>
+      <span class="acc-arrow" style="color:var(--muted);font-size:1.2rem;transition:transform .2s">▾</span>
     </div>
-    <button class="btn-sm" onclick="adminAdd('anlaeg')">+ Tilføj anlæg</button>
+    <div class="acc-body" style="padding:0 20px 20px">
+      <div id="list-anlaeg"></div>
+      <div class="g2" style="margin-top:14px">
+        <div class="fg"><label>Navn</label><input type="text" id="in-anlaeg-navn" placeholder="Fx Odense Kraftvarme A/S"></div>
+        <div class="fg"><label>By</label><input type="text" id="in-anlaeg-by" placeholder="Fx Odense"></div>
+      </div>
+      <button class="btn-sm" onclick="adminAdd('anlaeg')">+ Tilføj anlæg</button>
+    </div>
   </div>
-  <div class="card">
-    <div class="card-title green">🚜 Køretøjstyper og timepriser</div>
-    <p style="color:var(--muted);font-size:0.85rem;margin-bottom:16px">Bruges under hvert læs og under diverse poster.</p>
-    <div id="list-koeretoej"></div>
-    <div class="g3" style="margin-top:14px">
-      <div class="fg"><label>Køretøj</label><input type="text" id="in-koer-navn" placeholder="Fx Kranvogn med kærre"></div>
-      <div class="fg"><label>Timepris (kr.)</label><input type="number" id="in-koer-pris" placeholder="0" min="0"></div>
-      <div class="fg"><label>Varenr. i e-conomic</label><input type="number" id="in-koer-varenr" placeholder="Fx 1" min="1"></div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="acc-hdr" onclick="toggleAcc(this)" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;user-select:none">
+      <div class="card-title green" style="margin-bottom:0">🚜 Køretøjstyper og timepriser</div>
+      <span class="acc-arrow" style="color:var(--muted);font-size:1.2rem;transition:transform .2s">▾</span>
     </div>
-    <button class="btn-sm" onclick="adminAdd('koeretoej')">+ Tilføj køretøj</button>
+    <div class="acc-body" style="padding:0 20px 20px">
+      <p style="color:var(--muted);font-size:0.85rem;margin-bottom:16px">Bruges under hvert læs og under diverse poster.</p>
+      <div id="list-koeretoej"></div>
+      <div class="g3" style="margin-top:14px">
+        <div class="fg"><label>Køretøj</label><input type="text" id="in-koer-navn" placeholder="Fx Kranvogn med kærre"></div>
+        <div class="fg"><label>Timepris (kr.)</label><input type="number" id="in-koer-pris" placeholder="0" min="0"></div>
+        <div class="fg"><label>Varenr. i e-conomic</label><input type="number" id="in-koer-varenr" placeholder="Fx 1" min="1"></div>
+      </div>
+      <button class="btn-sm" onclick="adminAdd('koeretoej')">+ Tilføj køretøj</button>
+    </div>
   </div>
 </div>
 
@@ -855,6 +872,7 @@ function renderSubtab(type){
         +'<span style="font-family:DM Mono,monospace;font-size:0.82rem;color:var(--muted)">'+t.dato+'</span>'
         +'<strong style="margin-left:12px;font-size:1rem">'+t.kunde+'</strong>'
         +'<span style="margin-left:10px;color:var(--muted);font-size:0.82rem">'+t.chauffoer+'</span>'
+        +'<div style="font-size:0.8rem;color:var(--muted);margin-top:3px">📍 '+t.adresse+'</div>'
         +'</div>'
         +'<div style="display:flex;gap:8px;align-items:center">'
         +'<span style="font-size:0.85rem;color:var(--muted)">'+t.tons.toFixed(1)+' t total</span>'
@@ -1231,9 +1249,6 @@ async function sendTurToEco(tur, defaults) {
   var lines = [];
   var lineNum = 1;
   // unit 57 = timer, unit 15 = tons (standard e-conomic enheder)
-  var UNIT_TIMER = 57;
-  var UNIT_TONS = 15;
-
   // Helper: format dato as dd-mm-yyyy
   function fmtDato(d){ var p=d.split('-'); return p.length===3?p[2]+'-'+p[1]+'-'+p[0]:d; }
   var datoStr = fmtDato(tur.dato);
@@ -1250,7 +1265,6 @@ async function sendTurToEco(tur, defaults) {
         lineNumber: lineNum++,
         sortKey: lineNum,
         description: datoStr + ' ' + affNavn,
-        unit: {unitNumber: UNIT_TONS},
         quantity: l.tons,
         unitNetPrice: l.pris_ton || 0,
         discountPercentage: 0,
@@ -1266,7 +1280,6 @@ async function sendTurToEco(tur, defaults) {
         lineNumber: lineNum++,
         sortKey: lineNum,
         description: datoStr + ' ' + (l.koeretoej || 'Kørsel'),
-        unit: {unitNumber: UNIT_TIMER},
         quantity: l.timer,
         unitNetPrice: timePris,
         discountPercentage: 0,
@@ -1287,7 +1300,6 @@ async function sendTurToEco(tur, defaults) {
         lineNumber: lineNum++,
         sortKey: lineNum,
         description: datoStr + ' ' + levNavn,
-        unit: {unitNumber: UNIT_TONS},
         quantity: l.tons,
         unitNetPrice: l.pris_ton || 0,
         discountPercentage: 0,
@@ -1303,7 +1315,6 @@ async function sendTurToEco(tur, defaults) {
         lineNumber: lineNum++,
         sortKey: lineNum,
         description: datoStr + ' ' + (l.koeretoej || 'Kørsel'),
-        unit: {unitNumber: UNIT_TIMER},
         quantity: l.timer,
         unitNetPrice: timePris2,
         discountPercentage: 0,
@@ -1322,7 +1333,6 @@ async function sendTurToEco(tur, defaults) {
         lineNumber: lineNum++,
         sortKey: lineNum,
         description: datoStr + ' ' + (d.koeretoej || d.desc || 'Kørsel'),
-        unit: {unitNumber: UNIT_TIMER},
         quantity: d.timer,
         unitNetPrice: dPris || 0,
         discountPercentage: 0,
@@ -1440,7 +1450,6 @@ async function sendTurGruppeToEco(ture, defaults) {
 
   var lines = [];
   var lineNum = 1;
-  var UNIT_TIMER = 57; var UNIT_TONS = 15;
   function fmtDato(d){ var p=d.split('-'); return p.length===3?p[2]+'-'+p[1]+'-'+p[0]:d; }
 
   ture.forEach(function(tur){
@@ -1787,6 +1796,13 @@ async function doResetPassword(){
     document.getElementById('login-screen').classList.remove('hidden');
     alert('✅ Adgangskode gemt! Log nu ind med din nye kode.');
   } catch(e){errEl.textContent='Fejl: '+e.message;}
+}
+
+function toggleAcc(hdr){
+  var body=hdr.nextElementSibling;
+  var arrow=hdr.querySelector('.acc-arrow');
+  body.classList.toggle('collapsed');
+  arrow.classList.toggle('rotated');
 }
 
 async function doLogin(){
