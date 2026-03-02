@@ -267,8 +267,7 @@ tr:hover td{background:rgba(245,166,35,.03);}
         <h3>Klar til fakturering</h3>
         <button class="btn-eco" onclick="openModal()">⚡ Send alle til e-conomic</button>
       </div>
-      <table><thead><tr><th>Dato</th><th>Kunde</th><th>Beskrivelse</th><th>Tons</th><th>Timer</th><th>Chauffør</th><th>Billeder</th><th></th></tr></thead>
-      <tbody id="t-faktura"></tbody></table>
+      <div id="t-faktura" style="padding:8px"></div>
     </div>
   </div>
 
@@ -1083,19 +1082,47 @@ function renderSubtab(type){
     });
 
   } else if(type==='faktura'){
-    tbody=document.getElementById('t-faktura');tbody.innerHTML='';
-    if(!filtered.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Ingen ture klar til fakturering</td></tr>';return;}
+    var container=document.getElementById('t-faktura');
+    container.innerHTML='';
+    if(!filtered.length){container.innerHTML='<p style="text-align:center;color:var(--muted);padding:24px">Ingen ture klar til fakturering</p>';return;}
+    var grupper=[];
     filtered.forEach(function(t){
-      var tr=document.createElement('tr');
-      tr.innerHTML='<td style="font-family:DM Mono,monospace;font-size:0.8rem">'+t.dato+'</td>'
-        +'<td><strong>'+t.kunde+'</strong></td>'
-        +'<td style="font-size:0.82rem;color:var(--muted)">'+turDesc(t)+'</td>'
-        +'<td>'+t.tons.toFixed(1)+' t</td>'
-        +'<td>'+t.timer+' t</td>'
-        +'<td style="color:var(--muted)">'+t.chauffoer+'</td>'
-        +'<td>'+billedBtn(t)+'</td>'
-        +'<td><button class="btn-del" onclick="promptSlet(\''+t.id+'\',\''+t.kunde+'\')">Slet</button></td>';
-      tbody.appendChild(tr);
+      var noegle=t.kunde+'||'+t.adresse;
+      var g=grupper.find(function(x){return x.noegle===noegle;});
+      if(g){g.ture.push(t);}else{grupper.push({noegle:noegle,kunde:t.kunde,adresse:t.adresse,ture:[t]});}
+    });
+    grupper.forEach(function(g){
+      var erGruppe=g.ture.length>1;
+      var box=document.createElement('div');
+      box.style.cssText='border:1px solid '+(erGruppe?'rgba(245,166,35,0.45)':'var(--border)')+';border-radius:10px;margin-bottom:10px;overflow:hidden;';
+      var hdr=document.createElement('div');
+      hdr.style.cssText='display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:12px 16px;background:'+(erGruppe?'rgba(245,166,35,0.07)':'rgba(255,255,255,0.02)')+';';
+      var totalTons=g.ture.reduce(function(s,t){return s+(t.tons||0);},0);
+      var totalTimer=g.ture.reduce(function(s,t){return s+(t.timer||0);},0);
+      var turtypeTag=g.ture[0].turtype==='Tilbagevendende'?'<span style="font-size:0.7rem;color:#818cf8;background:rgba(129,140,248,0.15);border:1px solid rgba(129,140,248,0.3);padding:1px 7px;border-radius:20px">\uD83D\uDD01 Tilbagevendende</span>':'';
+      hdr.innerHTML=(erGruppe?'<span style="font-size:0.7rem;font-weight:700;color:var(--accent);letter-spacing:.5px;margin-right:4px">SAMLET FAKTURA</span>':'')
+        +'<strong style="font-size:0.95rem">'+g.kunde+'</strong>'
+        +'<span style="color:var(--muted);font-size:0.82rem;margin-left:6px">'+g.adresse+'</span>'
+        +turtypeTag
+        +'<span style="margin-left:auto;color:var(--muted);font-size:0.82rem">'+totalTons.toFixed(1)+' t · '+totalTimer+' t kørsel</span>';
+      box.appendChild(hdr);
+      g.ture.forEach(function(t){
+        var row=document.createElement('div');
+        row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 16px 10px '+(erGruppe?'28px':'16px')+';border-top:1px solid var(--border);font-size:0.84rem;';
+        row.innerHTML='<span style="font-family:DM Mono,monospace;color:var(--muted);min-width:90px">'+t.dato+'</span>'
+          +'<span style="color:var(--muted);flex:1">'+turDesc(t)+'</span>'
+          +'<span style="min-width:55px">'+t.tons.toFixed(1)+' t</span>'
+          +'<span style="min-width:55px;color:var(--muted)">'+t.timer+' t</span>'
+          +'<span style="color:var(--muted);min-width:110px">'+t.chauffoer+'</span>'
+          +'<span>'+billedBtn(t)+'</span>'
+          +'<span></span>';
+        var sletSpan=row.querySelector('span:last-child');
+        var sletBtn=document.createElement('button');sletBtn.className='btn-del';sletBtn.textContent='Slet';
+        (function(tid,tnavn){sletBtn.onclick=function(){promptSlet(tid,tnavn);};})(t.id,t.kunde);
+        sletSpan.appendChild(sletBtn);
+        box.appendChild(row);
+      });
+      container.appendChild(box);
     });
 
   } else if(type==='sendt'){
