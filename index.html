@@ -1719,7 +1719,7 @@ async function loadAppData(){
   for(var i=0;i<tables.length;i++){var d=await sbGet(tables[i],'order=oprettet.asc');if(d)adminData[tables[i]]=d;}
   refreshSelects();buildLaes('afhent',1);buildLaes('lev',0);
   if(currentRole==='admin'||currentRole==='kontor'){
-    await loadTrips();
+    await reloadTure();
     renderAllSubtabs();
   }
 }
