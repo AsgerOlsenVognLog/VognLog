@@ -18,9 +18,12 @@ input{width:100%;background:var(--bg);border:1px solid var(--border);border-radi
 input:focus{border-color:var(--accent);}
 .btn{width:100%;padding:14px;background:var(--accent);color:#000;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-top:4px;}
 .btn:hover{background:#ffc04d;}
-.msg{text-align:center;font-size:0.85rem;margin-top:12px;min-height:20px;}
-.msg.error{color:var(--red);}
-.msg.success{color:var(--green);}
+.btn:disabled{opacity:0.5;cursor:not-allowed;}
+.msg{text-align:center;font-size:0.85rem;margin-top:12px;min-height:20px;padding:8px;border-radius:8px;}
+.msg.error{color:var(--red);background:rgba(255,92,92,0.1);}
+.msg.success{color:var(--green);background:rgba(62,207,142,0.1);}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid rgba(0,0,0,0.3);border-top-color:#000;border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:8px;}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -28,49 +31,89 @@ input:focus{border-color:var(--accent);}
   <div class="logo">Vogn<span>Log</span></div>
   <div class="sub" id="sub-text">Sæt din nye adgangskode</div>
   <div id="form-area">
-    <label>Ny adgangskode</label>
-    <input type="password" id="pw1" placeholder="Min. 6 tegn">
-    <label>Gentag adgangskode</label>
-    <input type="password" id="pw2" placeholder="Gentag koden">
-    <button class="btn" onclick="doReset()">Gem adgangskode →</button>
-    <div class="msg error" id="msg"></div>
+    <div id="msg" class="msg" style="display:none"></div>
+    <div id="fields">
+      <label>Ny adgangskode</label>
+      <input type="password" id="pw1" placeholder="Min. 6 tegn">
+      <label>Gentag adgangskode</label>
+      <input type="password" id="pw2" placeholder="Gentag koden">
+      <button class="btn" id="save-btn" onclick="doReset()">Gem adgangskode →</button>
+    </div>
   </div>
 </div>
 
 <script>
 var SUPABASE_URL = 'https://cxqxoxwvuxfpgyhyztfy.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4cXhveHd2dXhmcGd5aHl6dGZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwNzc4MjgsImV4cCI6MjA4NzY1MzgyOH0.JZjMRmF7XjTak6--CVo_T7qNZw_hEAsF-gJFBRWkV4o';
+
+function showMsg(text, type) {
+  var el = document.getElementById('msg');
+  el.textContent = text;
+  el.className = 'msg ' + type;
+  el.style.display = 'block';
+}
+
+// Parse both hash (#) and query (?) params - Supabase can use either
+function getParams() {
+  var params = {};
+  // Try hash first
+  var hash = window.location.hash.slice(1);
+  if (hash) {
+    hash.split('&').forEach(function(p) {
+      var kv = p.split('=');
+      if (kv[0]) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || '');
+    });
+  }
+  // Also try query string
+  var search = window.location.search.slice(1);
+  if (search) {
+    search.split('&').forEach(function(p) {
+      var kv = p.split('=');
+      if (kv[0]) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || '');
+    });
+  }
+  return params;
+}
+
 var accessToken = null;
 
-// Parse token from URL hash
-(function(){
-  var hash = window.location.hash.slice(1);
-  var params = {};
-  hash.split('&').forEach(function(p){
-    var kv = p.split('=');
-    params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]||'');
-  });
-  if(params.access_token && params.type === 'recovery'){
-    accessToken = params.access_token;
-    history.replaceState(null, '', window.location.pathname);
-  } else if(params.error){
+(function init() {
+  var params = getParams();
+
+  if (params.error) {
     document.getElementById('sub-text').textContent = 'Linket er udløbet';
-    document.getElementById('form-area').innerHTML = '<p style="color:var(--muted);text-align:center;margin-bottom:20px">Dit reset-link er udløbet eller allerede brugt.</p><a href="https://asgerolsenvognlog.github.io/VognLog" style="display:block;text-align:center;color:var(--accent)">← Tilbage til login</a>';
+    document.getElementById('fields').style.display = 'none';
+    showMsg('Dit reset-link er udløbet. Bed om et nyt på login-siden.', 'error');
+    setTimeout(function() {
+      window.location.href = 'https://asgerolsenvognlog.github.io/VognLog';
+    }, 3000);
+    return;
   }
+
+  if (params.access_token && params.type === 'recovery') {
+    accessToken = params.access_token;
+    // Clear sensitive data from URL immediately
+    history.replaceState(null, '', window.location.pathname);
+    return;
+  }
+
+  // No token - maybe arrived without params
+  document.getElementById('fields').style.display = 'none';
+  showMsg('Ugyldigt link. Gå tilbage og bed om et nyt reset-link.', 'error');
+  document.getElementById('form-area').innerHTML += '<br><a href="https://asgerolsenvognlog.github.io/VognLog" style="display:block;text-align:center;color:var(--accent);margin-top:16px">← Tilbage til login</a>';
 })();
 
-async function doReset(){
+async function doReset() {
   var pw1 = document.getElementById('pw1').value;
   var pw2 = document.getElementById('pw2').value;
-  var msg = document.getElementById('msg');
-  msg.className = 'msg error';
+  var btn = document.getElementById('save-btn');
 
-  if(!accessToken){msg.textContent = 'Ugyldigt eller udløbet link. Bed om et nyt.';return;}
-  if(!pw1 || pw1.length < 6){msg.textContent = 'Adgangskoden skal være mindst 6 tegn';return;}
-  if(pw1 !== pw2){msg.textContent = 'Adgangskoderne matcher ikke';return;}
+  if (!pw1 || pw1.length < 6) { showMsg('Adgangskoden skal være mindst 6 tegn', 'error'); return; }
+  if (pw1 !== pw2) { showMsg('Adgangskoderne matcher ikke', 'error'); return; }
+  if (!accessToken) { showMsg('Ugyldigt eller udløbet link – bed om et nyt', 'error'); return; }
 
-  msg.className = 'msg success';
-  msg.textContent = 'Gemmer...';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Gemmer...';
 
   try {
     var res = await fetch(SUPABASE_URL + '/auth/v1/user', {
@@ -80,28 +123,32 @@ async function doReset(){
         'Authorization': 'Bearer ' + accessToken,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({password: pw1})
+      body: JSON.stringify({ password: pw1 })
     });
-    if(!res.ok){
+
+    if (!res.ok) {
       var d = await res.json();
-      msg.className = 'msg error';
-      msg.textContent = d.message || 'Fejl – prøv igen';
+      showMsg(d.message || 'Fejl – prøv at bede om et nyt reset-link', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Gem adgangskode →';
       return;
     }
-    msg.className = 'msg success';
-    msg.textContent = '✅ Adgangskode gemt!';
-    document.getElementById('form-area').innerHTML = 
-      '<p style="color:var(--green);text-align:center;margin-bottom:20px">✅ Din adgangskode er gemt!</p>' +
-      '<a href="https://asgerolsenvognlog.github.io/VognLog" style="display:block;text-align:center;background:var(--accent);color:#000;padding:14px;border-radius:10px;font-family:Syne,sans-serif;font-weight:700;text-decoration:none">Log ind →</a>';
-  } catch(e){
-    msg.className = 'msg error';
-    msg.textContent = 'Fejl: ' + e.message;
+
+    document.getElementById('fields').style.display = 'none';
+    document.getElementById('sub-text').textContent = 'Adgangskode gemt!';
+    document.getElementById('form-area').innerHTML =
+      '<div class="msg success" style="display:block;margin-bottom:20px">✅ Din adgangskode er gemt!</div>' +
+      '<a href="https://asgerolsenvognlog.github.io/VognLog" style="display:block;text-align:center;background:var(--accent);color:#000;padding:14px;border-radius:10px;font-family:Syne,sans-serif;font-weight:700;text-decoration:none">Log ind på VognLog →</a>';
+
+  } catch(e) {
+    showMsg('Netværksfejl: ' + e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Gem adgangskode →';
   }
 }
 
-// Enter key support
-document.addEventListener('keydown', function(e){
-  if(e.key === 'Enter') doReset();
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && accessToken) doReset();
 });
 </script>
 </body>
