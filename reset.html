@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VognLog – Ny adgangskode</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f1117;--surface:#191c27;--border:#2e3354;--accent:#f5a623;--green:#3ecf8e;--red:#ff5c5c;--text:#eef0f8;--muted:#7b82a8;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:400px;margin:24px;}
+.logo{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--accent);text-align:center;margin-bottom:8px;}
+.logo span{color:var(--text);}
+.sub{text-align:center;color:var(--muted);font-size:0.88rem;margin-bottom:32px;}
+label{display:block;font-size:0.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.93rem;outline:none;margin-bottom:14px;}
+input:focus{border-color:var(--accent);}
+.btn{width:100%;padding:14px;background:var(--accent);color:#000;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-top:4px;}
+.btn:hover{background:#ffc04d;}
+.msg{text-align:center;font-size:0.85rem;margin-top:12px;min-height:20px;}
+.msg.error{color:var(--red);}
+.msg.success{color:var(--green);}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="logo">Vogn<span>Log</span></div>
+  <div class="sub" id="sub-text">Sæt din nye adgangskode</div>
+  <div id="form-area">
+    <label>Ny adgangskode</label>
+    <input type="password" id="pw1" placeholder="Min. 6 tegn">
+    <label>Gentag adgangskode</label>
+    <input type="password" id="pw2" placeholder="Gentag koden">
+    <button class="btn" onclick="doReset()">Gem adgangskode →</button>
+    <div class="msg error" id="msg"></div>
+  </div>
+</div>
+
+<script>
+var SUPABASE_URL = 'https://cxqxoxwvuxfpgyhyztfy.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4cXhveHd2dXhmcGd5aHl6dGZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwNzc4MjgsImV4cCI6MjA4NzY1MzgyOH0.JZjMRmF7XjTak6--CVo_T7qNZw_hEAsF-gJFBRWkV4o';
+var accessToken = null;
+
+// Parse token from URL hash
+(function(){
+  var hash = window.location.hash.slice(1);
+  var params = {};
+  hash.split('&').forEach(function(p){
+    var kv = p.split('=');
+    params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]||'');
+  });
+  if(params.access_token && params.type === 'recovery'){
+    accessToken = params.access_token;
+    history.replaceState(null, '', window.location.pathname);
+  } else if(params.error){
+    document.getElementById('sub-text').textContent = 'Linket er udløbet';
+    document.getElementById('form-area').innerHTML = '<p style="color:var(--muted);text-align:center;margin-bottom:20px">Dit reset-link er udløbet eller allerede brugt.</p><a href="https://asgerolsenvognlog.github.io/VognLog" style="display:block;text-align:center;color:var(--accent)">← Tilbage til login</a>';
+  }
+})();
+
+async function doReset(){
+  var pw1 = document.getElementById('pw1').value;
+  var pw2 = document.getElementById('pw2').value;
+  var msg = document.getElementById('msg');
+  msg.className = 'msg error';
+
+  if(!accessToken){msg.textContent = 'Ugyldigt eller udløbet link. Bed om et nyt.';return;}
+  if(!pw1 || pw1.length < 6){msg.textContent = 'Adgangskoden skal være mindst 6 tegn';return;}
+  if(pw1 !== pw2){msg.textContent = 'Adgangskoderne matcher ikke';return;}
+
+  msg.className = 'msg success';
+  msg.textContent = 'Gemmer...';
+
+  try {
+    var res = await fetch(SUPABASE_URL + '/auth/v1/user', {
+      method: 'PUT',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + accessToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({password: pw1})
+    });
+    if(!res.ok){
+      var d = await res.json();
+      msg.className = 'msg error';
+      msg.textContent = d.message || 'Fejl – prøv igen';
+      return;
+    }
+    msg.className = 'msg success';
+    msg.textContent = '✅ Adgangskode gemt!';
+    document.getElementById('form-area').innerHTML = 
+      '<p style="color:var(--green);text-align:center;margin-bottom:20px">✅ Din adgangskode er gemt!</p>' +
+      '<a href="https://asgerolsenvognlog.github.io/VognLog" style="display:block;text-align:center;background:var(--accent);color:#000;padding:14px;border-radius:10px;font-family:Syne,sans-serif;font-weight:700;text-decoration:none">Log ind →</a>';
+  } catch(e){
+    msg.className = 'msg error';
+    msg.textContent = 'Fejl: ' + e.message;
+  }
+}
+
+// Enter key support
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Enter') doReset();
+});
+</script>
+</body>
+</html>
