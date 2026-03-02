@@ -53,21 +53,21 @@ function showMsg(text, type) {
   el.style.display = 'block';
 }
 
-// Parse both hash (#) and query (?) params - Supabase can use either
+// Parse both query (?) and hash (#) params
 function getParams() {
   var params = {};
-  // Try hash first
-  var hash = window.location.hash.slice(1);
-  if (hash) {
-    hash.split('&').forEach(function(p) {
+  // Try query string first - more reliable, Chrome doesn't strip it
+  var search = window.location.search.slice(1);
+  if (search) {
+    search.split('&').forEach(function(p) {
       var kv = p.split('=');
       if (kv[0]) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || '');
     });
   }
-  // Also try query string
-  var search = window.location.search.slice(1);
-  if (search) {
-    search.split('&').forEach(function(p) {
+  // Also try hash as fallback
+  var hash = window.location.hash.slice(1);
+  if (hash) {
+    hash.split('&').forEach(function(p) {
       var kv = p.split('=');
       if (kv[0]) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || '');
     });
