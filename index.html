@@ -394,6 +394,20 @@ tr:hover td{background:rgba(245,166,35,.03);}
   </div>
 </div>
 
+<!-- MODAL: varer fra e-conomic -->
+<div class="overlay" id="varer-modal">
+  <div class="modal" style="max-width:560px">
+    <h3 id="varer-modal-title" style="color:var(--accent)">🔄 Vælg varer fra e-conomic</h3>
+    <p style="color:var(--muted);font-size:0.85rem;margin:8px 0 14px">Sæt kryds ved de varer du vil tilføje:</p>
+    <div id="varer-liste" style="max-height:340px;overflow-y:auto;margin-bottom:14px"></div>
+    <div id="varer-status" style="font-size:0.85rem;color:var(--green);min-height:18px;margin-bottom:8px"></div>
+    <div class="modal-btns">
+      <button class="btn-sm" onclick="document.getElementById('varer-modal').classList.remove('show')">Annullér</button>
+      <button class="btn-eco" onclick="gemValgteVarer()">✓ Tilføj valgte</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: e-conomic -->
 <div class="overlay" id="modal">
   <div class="modal" style="max-width:600px">
@@ -1490,48 +1504,80 @@ async function syncKunders(){
   }
 }
 
+var _varerType=null; var _alleVarer=[];
+
 async function syncVarer(type){
+  _varerType=type;
   var statusId=type==='affaldstyper'?'sync-aff-status':'sync-lev-status';
   var statusEl=document.getElementById(statusId);
   statusEl.style.color='var(--green)';
   statusEl.textContent='Henter varer fra e-conomic...';
-  var added=0; var updated=0;
   try {
     var url='/products?pagesize=100&skippages=0';
-    var alle=[];
+    _alleVarer=[];
     while(url){
       var data=await ecoGet(url);
       if(!data||!data.collection)break;
-      alle=alle.concat(data.collection);
+      _alleVarer=_alleVarer.concat(data.collection);
       url=(data.pagination&&data.pagination.nextPage)?data.pagination.nextPage.replace('https://restapi.e-conomic.com',''):null;
     }
-    // Show picker dialog to let user choose which products go where
-    var lines=alle.map(function(p,i){return i+': '+p.productNumber+' – '+p.name+(p.salesPrice?' ('+p.salesPrice+' kr.)':'');}).join('\n');
-    var input=prompt('Varer fra e-conomic:\n'+lines+'\n\nIndtast numre adskilt med komma for de varer du vil tilføje til "'+type+'" (fx: 0,2,5)');
-    if(!input)return;
-    var valgte=input.split(',').map(function(x){return parseInt(x.trim());}).filter(function(x){return !isNaN(x);});
-    for(var j=0;j<valgte.length;j++){
-      var p=alle[valgte[j]];if(!p)continue;
-      var existing=adminData[type].find(function(x){return x.varenr==p.productNumber;});
-      var item={navn:p.name||'',pris:p.salesPrice||0,varenr:p.productNumber};
-      if(type==='affaldstyper')item.eak='';
-      if(existing){
-        Object.assign(existing,item);
-        if(existing.id)await sbUpdate(type,existing.id,item);
-        updated++;
-      } else {
-        var res=await sbInsert(type,item);
-        if(res&&res[0])item.id=res[0].id;
-        adminData[type].push(item);
-        added++;
-      }
+    statusEl.textContent='';
+    // Show modal with checkboxes
+    var titel=type==='affaldstyper'?'Tilføj til Affaldstyper':'Tilføj til Leveringstyper';
+    document.getElementById('varer-modal-title').textContent='🔄 '+titel;
+    document.getElementById('varer-status').textContent='';
+    var liste=document.getElementById('varer-liste');
+    liste.innerHTML='';
+    if(!_alleVarer.length){liste.innerHTML='<p style="color:var(--muted)">Ingen varer fundet i e-conomic</p>';
+    } else {
+      _alleVarer.forEach(function(p,i){
+        var already=adminData[type].find(function(x){return x.varenr==p.productNumber;});
+        var row=document.createElement('div');
+        row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;'+(already?'opacity:0.5':'');
+        var chk=document.createElement('input');chk.type='checkbox';chk.id='vchk-'+i;
+        chk.style.cssText='width:auto;cursor:pointer;accent-color:var(--accent)';
+        chk.checked=!already;chk.disabled=already;
+        var lbl=document.createElement('label');lbl.htmlFor='vchk-'+i;
+        lbl.style.cssText='cursor:pointer;font-size:0.88rem;flex:1';
+        lbl.innerHTML='<strong>'+p.name+'</strong> <span style="color:var(--muted)">varenr: '+p.productNumber+'</span>'+(p.salesPrice?' · '+p.salesPrice+' kr.':'')+(already?' <span style="color:var(--muted)">(allerede tilføjet)</span>':'');
+        row.appendChild(chk);row.appendChild(lbl);
+        if(!already)row.onclick=function(e){if(e.target!==chk)chk.checked=!chk.checked;};
+        liste.appendChild(row);
+      });
     }
-    renderAdminLists();refreshSelects();rebuildLaes();
-    statusEl.textContent='✅ '+added+' tilføjet, '+updated+' opdateret';
+    document.getElementById('varer-modal').classList.add('show');
   } catch(e){
     statusEl.style.color='var(--red)';
     statusEl.textContent='Fejl: '+e.message;
   }
+}
+
+async function gemValgteVarer(){
+  var added=0; var updated=0;
+  var statusEl=document.getElementById('varer-status');
+  statusEl.textContent='Gemmer...';
+  for(var i=0;i<_alleVarer.length;i++){
+    var chk=document.getElementById('vchk-'+i);
+    if(!chk||!chk.checked)continue;
+    var p=_alleVarer[i];
+    var existing=adminData[_varerType].find(function(x){return x.varenr==p.productNumber;});
+    var item={navn:p.name||'',pris:p.salesPrice||0,varenr:p.productNumber};
+    if(_varerType==='affaldstyper')item.eak='';
+    if(existing){
+      Object.assign(existing,item);
+      if(existing.id)await sbUpdate(_varerType,existing.id,item);
+      updated++;
+    } else {
+      var res=await sbInsert(_varerType,item);
+      if(res&&res[0])item.id=res[0].id;
+      adminData[_varerType].push(item);
+      added++;
+    }
+  }
+  renderAdminLists();refreshSelects();rebuildLaes();
+  document.getElementById('varer-modal').classList.remove('show');
+  var statusId=_varerType==='affaldstyper'?'sync-aff-status':'sync-lev-status';
+  document.getElementById(statusId).textContent='✅ '+added+' tilføjet, '+updated+' opdateret';
 }
 
 var adminFieldLabels={
