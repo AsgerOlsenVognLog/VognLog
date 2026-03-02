@@ -868,10 +868,14 @@ function renderSubtab(type){
       // Header
       var hdr=document.createElement('div');
       hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;';
+      var turtypeBadge = t.turtype==='Tilbagevendende'
+        ? '<span style="margin-left:10px;background:rgba(129,140,248,0.15);border:1px solid rgba(129,140,248,0.4);color:#818cf8;font-size:0.72rem;padding:2px 8px;border-radius:20px;font-weight:600">🔁 Tilbagevendende</span>'
+        : '';
       hdr.innerHTML='<div>'
         +'<span style="font-family:DM Mono,monospace;font-size:0.82rem;color:var(--muted)">'+t.dato+'</span>'
         +'<strong style="margin-left:12px;font-size:1rem">'+t.kunde+'</strong>'
         +'<span style="margin-left:10px;color:var(--muted);font-size:0.82rem">'+t.chauffoer+'</span>'
+        +turtypeBadge
         +'<div style="font-size:0.8rem;color:var(--muted);margin-top:3px">📍 '+t.adresse+'</div>'
         +'</div>'
         +'<div style="display:flex;gap:8px;align-items:center">'
@@ -1399,39 +1403,27 @@ async function confirmEco() {
   var defaults = await getEcoDefaults();
   var ok = 0; var fejl = [];
 
-  // Group "Tilbagevendende" trips with same kunde+adresse into one invoice
+  // Group ALL valgte ture by kunde+adresse - same kunde+adresse = one invoice
   var grupper = [];
-  var enkelt = [];
   valgte.forEach(function(t){
-    if(t.turtype === 'Tilbagevendende'){
-      var noegle = t.kunde + '||' + t.adresse;
-      var g = grupper.find(function(x){return x.noegle===noegle;});
-      if(g){ g.ture.push(t); } else { grupper.push({noegle:noegle, ture:[t]}); }
-    } else {
-      enkelt.push(t);
-    }
+    var noegle = t.kunde + '||' + t.adresse;
+    var g = grupper.find(function(x){return x.noegle===noegle;});
+    if(g){ g.ture.push(t); } else { grupper.push({noegle:noegle, ture:[t]}); }
   });
 
-  // Send individual trips
-  for (var i = 0; i < enkelt.length; i++) {
-    var success = await sendTurToEco(enkelt[i], defaults);
-    if (success) {
-      await sbUpdate('ture', enkelt[i].id, {status:'sendt'});
-      enkelt[i].status = 'sendt'; ok++;
-    } else { fejl.push(enkelt[i].kunde); }
-  }
-
-  // Send grouped tilbagevendende trips as one invoice each
+  // Send each group as one invoice
   for (var j = 0; j < grupper.length; j++) {
     var g = grupper[j];
-    var success2 = await sendTurGruppeToEco(g.ture, defaults);
+    var success2 = g.ture.length === 1
+      ? await sendTurToEco(g.ture[0], defaults)
+      : await sendTurGruppeToEco(g.ture, defaults);
     if (success2) {
       for(var k=0;k<g.ture.length;k++){
         await sbUpdate('ture', g.ture[k].id, {status:'sendt'});
         g.ture[k].status = 'sendt';
       }
       ok++;
-    } else { fejl.push(g.ture[0].kunde + ' (tilbagevendende)'); }
+    } else { fejl.push(g.ture[0].kunde); }
   }
 
   closeModal(); renderAllSubtabs();
