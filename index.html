@@ -1647,28 +1647,41 @@ async function doLogin(){
   var email=document.getElementById('login-email').value.trim();
   var pass=document.getElementById('login-password').value;
   var errEl=document.getElementById('login-error');
+  if(!email||!pass){errEl.textContent='Udfyld email og adgangskode';return;}
   errEl.textContent='Logger ind...';
   try {
+    // Step 1: Authenticate
     var res=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=password',{
       method:'POST',
       headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},
       body:JSON.stringify({email:email,password:pass})
     });
     var data=await res.json();
-    if(!res.ok||!data.access_token){errEl.textContent=data.error_description||'Forkert email eller adgangskode';return;}
+    if(!res.ok||!data.access_token){
+      errEl.textContent=data.error_description||data.msg||'Forkert email eller adgangskode';
+      return;
+    }
     currentUser=data.user;
-    // Check role in bruger_roller table
-    var roleRes=await fetch(SUPABASE_URL+'/rest/v1/bruger_roller?email=eq.'+encodeURIComponent(email),{
-      headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+data.access_token}
-    });
-    var roleData=await roleRes.json();
-    currentRole=(roleData&&roleData[0])?roleData[0].rolle:'chauffoer';
     sessionStorage.setItem('vl_token',data.access_token);
-    sessionStorage.setItem('vl_role',currentRole);
     sessionStorage.setItem('vl_email',email);
-    sessionStorage.setItem('vl_name',(roleData&&roleData[0]&&roleData[0].navn)?roleData[0].navn:email);
-    applyRole();
+
+    // Step 2: Look up role - default to admin if table missing or no row found
+    var rolle='admin'; var navn=email;
+    try {
+      var roleRes=await fetch(SUPABASE_URL+'/rest/v1/bruger_roller?email=eq.'+encodeURIComponent(email),{
+        headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+data.access_token}
+      });
+      if(roleRes.ok){
+        var roleData=await roleRes.json();
+        if(roleData&&roleData[0]){rolle=roleData[0].rolle||'admin';navn=roleData[0].navn||email;}
+      }
+    } catch(e){ /* rolle table missing, default to admin */ }
+
+    currentRole=rolle;
+    sessionStorage.setItem('vl_role',rolle);
+    sessionStorage.setItem('vl_name',navn);
     errEl.textContent='';
+    applyRole();
   } catch(e){errEl.textContent='Fejl: '+e.message;}
 }
 
