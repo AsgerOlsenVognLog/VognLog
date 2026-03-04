@@ -1314,6 +1314,7 @@ async function sendTurToEco(tur, defaults) {
     var kundenBetaler = l.betalingstype === 'Kunden betaler';
     var affObj = adminData.affaldstyper.find(function(x){return x.eak===l.eak;});
     var affVarenr = affObj ? (parseInt(affObj.varenr)||1) : 1;
+    if (l.beskrivelse) lines.push({lineNumber:lineNum++,sortKey:lineNum,description:l.beskrivelse});
     if (l.tons > 0 && !kundenBetaler) {
       var affNavn = (affObj && affObj.navn) ? affObj.navn : (l.label || 'Affald');
       lines.push({lineNumber:lineNum++,sortKey:lineNum,description:affNavn,quantity:l.tons,unitNetPrice:l.pris_ton||0,discountPercentage:0,product:{productNumber:String(affVarenr)}});
@@ -1460,6 +1461,7 @@ async function sendTurGruppeToEco(ture, defaults) {
       var kundenBetaler = l.betalingstype==='Kunden betaler';
       var affObj=adminData.affaldstyper.find(function(x){return x.eak===l.eak;});
       var affVarenr=affObj?(parseInt(affObj.varenr)||1):1;
+      if(l.beskrivelse) lines.push({lineNumber:lineNum++,sortKey:lineNum,description:l.beskrivelse});
       if(l.tons>0&&!kundenBetaler){
         var affNavn=(affObj&&affObj.navn)?affObj.navn:(l.label||'Affald');
         lines.push({lineNumber:lineNum++,sortKey:lineNum,description:affNavn,quantity:l.tons,unitNetPrice:l.pris_ton||0,discountPercentage:0,product:{productNumber:String(affVarenr)}});
