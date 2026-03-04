@@ -397,13 +397,15 @@ tr:hover td{background:rgba(245,166,35,.03);}
       <span class="acc-arrow" style="color:var(--muted);font-size:1.2rem;transition:transform .2s">▾</span>
     </div>
     <div class="acc-body collapsed" style="padding:0 20px 20px">
+      <button class="btn-eco" onclick="syncVarer('tillaegstyper')" style="font-size:0.8rem;padding:7px 14px;margin-bottom:12px">🔄 Synk varer fra e-conomic</button>
+      <span id="sync-till-status" style="font-size:0.82rem;margin-left:10px"></span>
       <div id="list-tillaegstyper"></div>
       <div class="g3" style="margin-top:14px">
         <div class="fg"><label>Navn</label><input type="text" id="in-till-navn" placeholder="Fx Bigbags, Vådjordstillæg"></div>
         <div class="fg"><label>Pris pr. stk (kr.)</label><input type="number" id="in-till-pris" placeholder="0" min="0"></div>
         <div class="fg"><label>Varenr. i e-conomic</label><input type="number" id="in-till-varenr" placeholder="Fx 10" min="1"></div>
       </div>
-      <button class="btn-sm" onclick="adminAdd('tillaegstyper')">+ Tilføj tillægstype</button>
+      <button class="btn-sm" onclick="adminAdd('tillaegstyper')">+ Tilføj tillægstype manuelt</button>
     </div>
   </div>
   <div class="card" style="padding:0;overflow:hidden">
@@ -413,13 +415,15 @@ tr:hover td{background:rgba(245,166,35,.03);}
     </div>
     <div class="acc-body" style="padding:0 20px 20px">
       <p style="color:var(--muted);font-size:0.85rem;margin-bottom:16px">Bruges under hvert læs og under diverse poster.</p>
+      <button class="btn-eco" onclick="syncVarer('koeretoej')" style="font-size:0.8rem;padding:7px 14px;margin-bottom:12px">🔄 Synk varer fra e-conomic</button>
+      <span id="sync-koer-status" style="font-size:0.82rem;margin-left:10px"></span>
       <div id="list-koeretoej"></div>
       <div class="g3" style="margin-top:14px">
         <div class="fg"><label>Køretøj</label><input type="text" id="in-koer-navn" placeholder="Fx Kranvogn med kærre"></div>
         <div class="fg"><label>Timepris (kr.)</label><input type="number" id="in-koer-pris" placeholder="0" min="0"></div>
         <div class="fg"><label>Varenr. i e-conomic</label><input type="number" id="in-koer-varenr" placeholder="Fx 1" min="1"></div>
       </div>
-      <button class="btn-sm" onclick="adminAdd('koeretoej')">+ Tilføj køretøj</button>
+      <button class="btn-sm" onclick="adminAdd('koeretoej')">+ Tilføj køretøj manuelt</button>
     </div>
   </div>
 </div>
@@ -1750,8 +1754,9 @@ var _varerType=null; var _alleVarer=[];
 
 async function syncVarer(type){
   _varerType=type;
-  var statusId=type==='affaldstyper'?'sync-aff-status':'sync-lev-status';
+  var statusId=type==='affaldstyper'?'sync-aff-status':type==='leveringstyper'?'sync-lev-status':type==='koeretoej'?'sync-koer-status':'sync-till-status';
   var statusEl=document.getElementById(statusId);
+  if(!statusEl){statusEl=document.createElement('span');}
   statusEl.style.color='var(--green)';
   statusEl.textContent='Henter varer fra e-conomic...';
   try {
@@ -1765,7 +1770,8 @@ async function syncVarer(type){
     }
     statusEl.textContent='';
     // Show modal with checkboxes
-    var titel=type==='affaldstyper'?'Tilføj til Affaldstyper':'Tilføj til Leveringstyper';
+    var titler={affaldstyper:'Tilføj til Affaldstyper',leveringstyper:'Tilføj til Leveringstyper',koeretoej:'Tilføj til Køretøjstyper',tillaegstyper:'Tilføj til Tillægstyper'};
+    var titel=titler[type]||'Synk varer';
     document.getElementById('varer-modal-title').textContent='🔄 '+titel;
     document.getElementById('varer-status').textContent='';
     var liste=document.getElementById('varer-liste');
@@ -1811,6 +1817,7 @@ async function gemValgteVarer(){
     var existing=adminData[_varerType].find(function(x){return x.varenr==p.productNumber;});
     var item={navn:p.name||'',pris:p.salesPrice||0,varenr:p.productNumber};
     if(_varerType==='affaldstyper')item.eak='';
+    if(_varerType==='koeretoej')item.pris=p.salesPrice||0;
     if(existing){
       Object.assign(existing,item);
       if(existing.id)await sbUpdate(_varerType,existing.id,item);
