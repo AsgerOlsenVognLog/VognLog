@@ -1302,43 +1302,27 @@ async function sendTurToEco(tur, defaults) {
 
   var lines = [];
   var lineNum = 1;
-  // unit 57 = timer, unit 15 = tons (standard e-conomic enheder)
   // Helper: format dato as dd-mm-yyyy
   function fmtDato(d){ var p=d.split('-'); return p.length===3?p[2]+'-'+p[1]+'-'+p[0]:d; }
   var datoStr = fmtDato(tur.dato);
+
+  // Add dato as text line, then varelinjer beneath
+  lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr,quantity:0,unitNetPrice:0,discountPercentage:0});
 
   // Afhentningslæs
   (tur.afhentLaes || []).forEach(function(l) {
     var kundenBetaler = l.betalingstype === 'Kunden betaler';
     var affObj = adminData.affaldstyper.find(function(x){return x.eak===l.eak;});
     var affVarenr = affObj ? (parseInt(affObj.varenr)||1) : 1;
-    // Tons linje - kun hvis ikke "Kunden betaler"
     if (l.tons > 0 && !kundenBetaler) {
       var affNavn = (affObj && affObj.navn) ? affObj.navn : (l.label || 'Affald');
-      lines.push({
-        lineNumber: lineNum++,
-        sortKey: lineNum,
-        description: datoStr + ' ' + affNavn,
-        quantity: l.tons,
-        unitNetPrice: l.pris_ton || 0,
-        discountPercentage: 0,
-        product: {productNumber: String(affVarenr)}
-      });
+      lines.push({lineNumber:lineNum++,sortKey:lineNum,description:affNavn,quantity:l.tons,unitNetPrice:l.pris_ton||0,discountPercentage:0,product:{productNumber:String(affVarenr)}});
     }
-    // Timer linje
     if (l.timer > 0) {
       var koerObj = adminData.koeretoej.find(function(x){return x.navn===l.koeretoej;});
       var koerVarenr = koerObj ? (parseInt(koerObj.varenr)||1) : 1;
       var timePris = kundenBetaler ? 0 : (l.pris_time || getKoerPris(l.koeretoej));
-      lines.push({
-        lineNumber: lineNum++,
-        sortKey: lineNum,
-        description: datoStr + ' ' + (l.koeretoej || 'Kørsel'),
-        quantity: l.timer,
-        unitNetPrice: timePris,
-        discountPercentage: 0,
-        product: {productNumber: String(koerVarenr)}
-      });
+      lines.push({lineNumber:lineNum++,sortKey:lineNum,description:l.koeretoej||'Kørsel',quantity:l.timer,unitNetPrice:timePris,discountPercentage:0,product:{productNumber:String(koerVarenr)}});
     }
   });
 
@@ -1348,32 +1332,14 @@ async function sendTurToEco(tur, defaults) {
     var levObj = adminData.leveringstyper.find(function(x){return x.navn===l.label;});
     var levVarenr = levObj ? (parseInt(levObj.varenr)||1) : 1;
     var levNavn = (levObj && levObj.navn) ? levObj.navn : (l.label || 'Levering');
-    // Tons linje - kun hvis ikke "Kunden betaler"
     if (l.tons > 0 && !kundenBetaler) {
-      lines.push({
-        lineNumber: lineNum++,
-        sortKey: lineNum,
-        description: datoStr + ' ' + levNavn,
-        quantity: l.tons,
-        unitNetPrice: l.pris_ton || 0,
-        discountPercentage: 0,
-        product: {productNumber: String(levVarenr)}
-      });
+      lines.push({lineNumber:lineNum++,sortKey:lineNum,description:levNavn,quantity:l.tons,unitNetPrice:l.pris_ton||0,discountPercentage:0,product:{productNumber:String(levVarenr)}});
     }
-    // Timer linje
     if (l.timer > 0) {
       var koerObj2 = adminData.koeretoej.find(function(x){return x.navn===l.koeretoej;});
       var koerVarenr2 = koerObj2 ? (parseInt(koerObj2.varenr)||1) : 1;
       var timePris2 = kundenBetaler ? 0 : (l.pris_time || getKoerPris(l.koeretoej));
-      lines.push({
-        lineNumber: lineNum++,
-        sortKey: lineNum,
-        description: datoStr + ' ' + (l.koeretoej || 'Kørsel'),
-        quantity: l.timer,
-        unitNetPrice: timePris2,
-        discountPercentage: 0,
-        product: {productNumber: String(koerVarenr2)}
-      });
+      lines.push({lineNumber:lineNum++,sortKey:lineNum,description:l.koeretoej||'Kørsel',quantity:l.timer,unitNetPrice:timePris2,discountPercentage:0,product:{productNumber:String(koerVarenr2)}});
     }
   });
 
@@ -1383,15 +1349,7 @@ async function sendTurToEco(tur, defaults) {
     var koerVarenrD = koerObjD ? (parseInt(koerObjD.varenr)||1) : 1;
     var dPris = getKoerPris(d.koeretoej);
     if (d.timer > 0) {
-      lines.push({
-        lineNumber: lineNum++,
-        sortKey: lineNum,
-        description: datoStr + ' ' + (d.koeretoej || d.desc || 'Kørsel'),
-        quantity: d.timer,
-        unitNetPrice: dPris || 0,
-        discountPercentage: 0,
-        product: {productNumber: String(koerVarenrD)}
-      });
+      lines.push({lineNumber:lineNum++,sortKey:lineNum,description:d.koeretoej||d.desc||'Kørsel',quantity:d.timer,unitNetPrice:dPris||0,discountPercentage:0,product:{productNumber:String(koerVarenrD)}});
     }
   });
 
@@ -1496,19 +1454,21 @@ async function sendTurGruppeToEco(ture, defaults) {
 
   ture.forEach(function(tur){
     var datoStr = fmtDato(tur.dato);
+    // Dato as text line before each tur's lines
+    lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr,quantity:0,unitNetPrice:0,discountPercentage:0});
     (tur.afhentLaes||[]).forEach(function(l){
       var kundenBetaler = l.betalingstype==='Kunden betaler';
       var affObj=adminData.affaldstyper.find(function(x){return x.eak===l.eak;});
       var affVarenr=affObj?(parseInt(affObj.varenr)||1):1;
       if(l.tons>0&&!kundenBetaler){
         var affNavn=(affObj&&affObj.navn)?affObj.navn:(l.label||'Affald');
-        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr+' '+affNavn,quantity:l.tons,unitNetPrice:l.pris_ton||0,discountPercentage:0,product:{productNumber:String(affVarenr)}});
+        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:affNavn,quantity:l.tons,unitNetPrice:l.pris_ton||0,discountPercentage:0,product:{productNumber:String(affVarenr)}});
       }
       if(l.timer>0){
         var koerObj=adminData.koeretoej.find(function(x){return x.navn===l.koeretoej;});
         var koerVarenr=koerObj?(parseInt(koerObj.varenr)||1):1;
         var timePris=kundenBetaler?0:(l.pris_time||getKoerPris(l.koeretoej));
-        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr+' '+(l.koeretoej||'Kørsel'),quantity:l.timer,unitNetPrice:timePris,discountPercentage:0,product:{productNumber:String(koerVarenr)}});
+        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:l.koeretoej||'Kørsel',quantity:l.timer,unitNetPrice:timePris,discountPercentage:0,product:{productNumber:String(koerVarenr)}});
       }
     });
     (tur.levLaes||[]).forEach(function(l){
@@ -1517,13 +1477,13 @@ async function sendTurGruppeToEco(ture, defaults) {
       var levVarenr=levObj?(parseInt(levObj.varenr)||1):1;
       var levNavn=(levObj&&levObj.navn)?levObj.navn:(l.label||'Levering');
       if(l.tons>0&&!kundenBetaler){
-        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr+' '+levNavn,quantity:l.tons,unitNetPrice:l.pris_ton||0,discountPercentage:0,product:{productNumber:String(levVarenr)}});
+        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:levNavn,quantity:l.tons,unitNetPrice:l.pris_ton||0,discountPercentage:0,product:{productNumber:String(levVarenr)}});
       }
       if(l.timer>0){
         var koerObj2=adminData.koeretoej.find(function(x){return x.navn===l.koeretoej;});
         var koerVarenr2=koerObj2?(parseInt(koerObj2.varenr)||1):1;
         var timePris2=kundenBetaler?0:(l.pris_time||getKoerPris(l.koeretoej));
-        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr+' '+(l.koeretoej||'Kørsel'),quantity:l.timer,unitNetPrice:timePris2,discountPercentage:0,product:{productNumber:String(koerVarenr2)}});
+        lines.push({lineNumber:lineNum++,sortKey:lineNum,description:l.koeretoej||'Kørsel',quantity:l.timer,unitNetPrice:timePris2,discountPercentage:0,product:{productNumber:String(koerVarenr2)}});
       }
     });
   });
