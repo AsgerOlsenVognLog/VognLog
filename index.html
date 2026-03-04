@@ -797,6 +797,7 @@ async function reloadTure(){
     var d=await sbGet('diverse','tur_id=eq.'+tur.id);
     var b=await sbGet('billeder','tur_id=eq.'+tur.id);
     tur.afhentLaes=(a||[]).map(function(x){
+      console.log('afhent betaler:', JSON.stringify(x.betaler), 'betalingstype:', JSON.stringify(x.betalingstype));
       if(x.betaler==='kunde') x.pris_ton=0;
       return x;
     });
