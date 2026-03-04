@@ -393,6 +393,20 @@ tr:hover td{background:rgba(245,166,35,.03);}
   </div>
   <div class="card" style="padding:0;overflow:hidden">
     <div class="acc-hdr" onclick="toggleAcc(this)" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;user-select:none">
+      <div class="card-title green" style="margin-bottom:0">📍 Grusgraver (grusgrave, depoter mv.)</div>
+      <span class="acc-arrow" style="color:var(--muted);font-size:1.2rem;transition:transform .2s">▾</span>
+    </div>
+    <div class="acc-body collapsed" style="padding:0 20px 20px">
+      <div id="list-grusgrave"></div>
+      <div class="g2" style="margin-top:14px">
+        <div class="fg"><label>Navn</label><input type="text" id="in-grusgrav-navn" placeholder="Fx Fx Langø Grusgrav"></div>
+        <div class="fg"><label>By</label><input type="text" id="in-grusgrav-by" placeholder="Fx Roskilde"></div>
+      </div>
+      <button class="btn-sm" onclick="adminAdd('grusgrave')">+ Tilføj grusgrav</button>
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="acc-hdr" onclick="toggleAcc(this)" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;user-select:none">
       <div class="card-title green" style="margin-bottom:0">➕ Tillægstyper (bigbags, vådjord mv.)</div>
       <span class="acc-arrow" style="color:var(--muted);font-size:1.2rem;transition:transform .2s">▾</span>
     </div>
@@ -533,7 +547,7 @@ async function uploadImage(file, turId) {
 }
 function getImageUrl(path){return SUPABASE_URL+'/storage/v1/object/public/billeder/'+path;}
 
-var adminData = {kunder:[],chauffoerer:[],affaldstyper:[],leveringstyper:[],anlaeg:[],koeretoej:[],tillaegstyper:[]};
+var adminData = {kunder:[],chauffoerer:[],affaldstyper:[],leveringstyper:[],anlaeg:[],koeretoej:[],tillaegstyper:[],grusgrave:[]};
 var trips = [];
 var pendingImages = [];
 var diverseCount = 0;
@@ -585,7 +599,10 @@ function makeLaesBox(type,idx){
     var rm=document.createElement('div');rm.style.marginBottom='12px';
     var selMat=document.createElement('select');selMat.id=type+'-'+idx+'-mat';
     adminData.leveringstyper.forEach(function(lv){var o=document.createElement('option');o.textContent=lv.navn;selMat.appendChild(o);});
-    rm.appendChild(mkField('Materiale',selMat));box.appendChild(rm);
+    var selLevSted=document.createElement('select');selLevSted.id=type+'-'+idx+'-levsted';
+    var lsOpt=document.createElement('option');lsOpt.value='';lsOpt.textContent='Vælg grusgrav...';selLevSted.appendChild(lsOpt);
+    adminData.grusgrave.forEach(function(ls){var o=document.createElement('option');o.textContent=ls.navn+(ls.by?' – '+ls.by:'');o.value=ls.navn;selLevSted.appendChild(o);});
+    rm.appendChild(mkField('Materiale',selMat));rm.appendChild(mkField('Grusgrav',selLevSted));box.appendChild(rm);
   }
 
   var r2=document.createElement('div');r2.className='g2';r2.style.marginBottom='12px';
@@ -739,7 +756,8 @@ function collectLaes(type,count){
       result.push({label:st?st.options[st.selectedIndex].text.replace(/\s*\(EAK.*\)/,''):'',eak:st?st.value:'',tons:tons,timer:timer,anlaeg:sa?sa.value:'',betaler:betaler,koeretoej:koeretoej,beskrivelse:beskrivelse,tillaeg:tillaeg});
     } else {
       var sm=document.getElementById(type+'-'+i+'-mat');
-      result.push({label:sm?sm.value:'',tons:tons,timer:timer,betaler:betaler,koeretoej:koeretoej,beskrivelse:beskrivelse});
+      var sls=document.getElementById(type+'-'+i+'-levsted');
+      result.push({label:sm?sm.value:'',tons:tons,timer:timer,betaler:betaler,koeretoej:koeretoej,beskrivelse:beskrivelse,grusgrav:sls?sls.value:''});
     }
   }
   return result;
@@ -822,7 +840,7 @@ async function submitTrip(){
   }
   for(var li=0;li<levLaes.length;li++){
     var ll=levLaes[li];
-    await sbInsert('lev_laes',{tur_id:turId,label:ll.label,tons:ll.tons,timer:ll.timer,betaler:ll.betaler,koeretoej:ll.koeretoej,beskrivelse:ll.beskrivelse,pris_ton:getMatPris('lev',ll.label)});
+    await sbInsert('lev_laes',{tur_id:turId,label:ll.label,tons:ll.tons,timer:ll.timer,betaler:ll.betaler,koeretoej:ll.koeretoej,beskrivelse:ll.beskrivelse,pris_ton:getMatPris('lev',ll.label),grusgrav:ll.grusgrav||''});
   }
   for(var di=0;di<diversePoster.length;di++){
     await sbInsert('diverse',{tur_id:turId,beskrivelse:diversePoster[di].desc,timer:diversePoster[di].timer,koeretoej:diversePoster[di].koeretoej});
@@ -1150,6 +1168,7 @@ function renderSubtab(type){
           +'<div style="font-size:0.78rem;color:var(--muted)">Timer<br><input class="pris-edit" type="number" value="'+l.timer+'" min="0" step="0.5" data-field="timer" data-table="lev_laes" data-id="'+(l.id||'')+'"> t</div>'
           +'</div>';
         cell.innerHTML+='<div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px">Køretøj: <span style="color:var(--text)">'+l.koeretoej+'</span></div>';
+        if(l.grusgrav)cell.innerHTML+='<div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px">Grusgrav: <span style="color:var(--text)">'+l.grusgrav+'</span></div>';
 
         var levKundenBetaler = l.betaler==='kunde' || l.betalingstype==='Kunden betaler';
         cell.innerHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'
@@ -1649,7 +1668,8 @@ var adminCfg={
   leveringstyper:{fields:['navn','pris','varenr'],inputs:['in-lev-navn','in-lev-pris','in-lev-varenr']},
   anlaeg:{fields:['navn','by'],inputs:['in-anlaeg-navn','in-anlaeg-by']},
   koeretoej:{fields:['navn','pris','varenr'],inputs:['in-koer-navn','in-koer-pris','in-koer-varenr']},
-  tillaegstyper:{fields:['navn','pris','varenr'],inputs:['in-till-navn','in-till-pris','in-till-varenr']}
+  tillaegstyper:{fields:['navn','pris','varenr'],inputs:['in-till-navn','in-till-pris','in-till-varenr']},
+  grusgrave:{fields:['navn','by'],inputs:['in-grusgrav-navn','in-grusgrav-by']}
 };
 
 async function adminAdd(key){
@@ -1702,6 +1722,7 @@ function renderAdminList(key,containerId){
 
 function renderAdminLists(){
   renderAdminList('tillaegstyper','list-tillaegstyper');
+  renderAdminList('grusgrave','list-grusgrave');
   renderAdminList('kunder','list-kunder');renderAdminList('chauffoerer','list-chauffoerer');
   renderAdminList('affaldstyper','list-affaldstyper');renderAdminList('leveringstyper','list-leveringstyper');
   renderAdminList('anlaeg','list-anlaeg');renderAdminList('koeretoej','list-koeretoej');
@@ -2023,7 +2044,7 @@ function applyRole(){
 
 async function loadAppData(){
   document.getElementById('f-dato').value=new Date().toISOString().split('T')[0];
-  var tables=['kunder','chauffoerer','affaldstyper','leveringstyper','anlaeg','koeretoej','tillaegstyper'];
+  var tables=['kunder','chauffoerer','affaldstyper','leveringstyper','anlaeg','koeretoej','tillaegstyper','grusgrave'];
   for(var i=0;i<tables.length;i++){var d=await sbGet(tables[i],'order=oprettet.asc');if(d)adminData[tables[i]]=d;}
   refreshSelects();buildLaes('afhent',1);buildLaes('lev',0);
   if(currentRole==='admin'||currentRole==='kontor'){
