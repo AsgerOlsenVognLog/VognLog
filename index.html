@@ -796,8 +796,14 @@ async function reloadTure(){
     var l=await sbGet('lev_laes','tur_id=eq.'+tur.id);
     var d=await sbGet('diverse','tur_id=eq.'+tur.id);
     var b=await sbGet('billeder','tur_id=eq.'+tur.id);
-    tur.afhentLaes=a||[];
-    tur.levLaes=l||[];
+    tur.afhentLaes=(a||[]).map(function(x){
+      if(x.betaler==='kunde') x.pris_ton=0;
+      return x;
+    });
+    tur.levLaes=(l||[]).map(function(x){
+      if(x.betaler==='kunde') x.pris_ton=0;
+      return x;
+    });
     tur.diversePoster=(d||[]).map(function(x){return{desc:x.beskrivelse,timer:x.timer,koeretoej:x.koeretoej};});
     tur.billeder=b||[];
     trips.push(tur);
@@ -1018,7 +1024,7 @@ function renderSubtab(type){
         cell.innerHTML+='<div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px">Køretøj: <span style="color:var(--text)">'+l.koeretoej+'</span></div>';
         cell.innerHTML+='<div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px">Anlæg: <span style="color:var(--text)">'+l.anlaeg+'</span></div>';
 
-        var affKundenBetaler = l.betaler==='kunde';
+        var affKundenBetaler = l.betaler==='kunde' || l.betalingstype==='Kunden betaler';
         cell.innerHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'
           +'<div><div style="font-size:0.72rem;color:'+(affKundenBetaler?'var(--red)':'var(--muted)')+';margin-bottom:4px;text-transform:uppercase">Tonspris (affald)'+(affKundenBetaler?' 🙋 kunden betaler':'')+'</div>'
           +'<div style="display:flex;align-items:center;gap:4px"><input class="pris-edit" type="number" value="'+(affKundenBetaler?0:(l.pris_ton||0))+'" min="0" data-field="pris_ton" data-table="afhent_laes" data-id="'+(l.id||'')+'"'+(affKundenBetaler?' disabled style="opacity:0.4;cursor:not-allowed"':'')+'>  <span style="font-size:0.78rem;color:var(--muted)">kr/t</span></div></div>'
@@ -1045,7 +1051,7 @@ function renderSubtab(type){
           +'</div>';
         cell.innerHTML+='<div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px">Køretøj: <span style="color:var(--text)">'+l.koeretoej+'</span></div>';
 
-        var levKundenBetaler = l.betaler==='kunde';
+        var levKundenBetaler = l.betaler==='kunde' || l.betalingstype==='Kunden betaler';
         cell.innerHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'
           +'<div><div style="font-size:0.72rem;color:'+(levKundenBetaler?'var(--red)':'var(--muted)')+';margin-bottom:4px;text-transform:uppercase">Tonspris (materiale)'+(levKundenBetaler?' 🙋 kunden betaler':'')+'</div>'
           +'<div style="display:flex;align-items:center;gap:4px"><input class="pris-edit" type="number" value="'+(levKundenBetaler?0:(l.pris_ton||0))+'" min="0" data-field="pris_ton" data-table="lev_laes" data-id="'+(l.id||'')+'"'+(levKundenBetaler?' disabled style="opacity:0.4;cursor:not-allowed"':'')+'>  <span style="font-size:0.78rem;color:var(--muted)">kr/t</span></div></div>'
