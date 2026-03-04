@@ -1018,9 +1018,10 @@ function renderSubtab(type){
         cell.innerHTML+='<div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px">Køretøj: <span style="color:var(--text)">'+l.koeretoej+'</span></div>';
         cell.innerHTML+='<div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px">Anlæg: <span style="color:var(--text)">'+l.anlaeg+'</span></div>';
 
+        var affKundenBetaler = l.betaler==='kunde';
         cell.innerHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'
-          +'<div><div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Tonspris (affald)</div>'
-          +'<div style="display:flex;align-items:center;gap:4px"><input class="pris-edit" type="number" value="'+(l.pris_ton||0)+'" min="0" data-field="pris_ton" data-table="afhent_laes" data-id="'+(l.id||'')+'"> <span style="font-size:0.78rem;color:var(--muted)">kr/t</span></div></div>'
+          +'<div><div style="font-size:0.72rem;color:'+(affKundenBetaler?'var(--red)':'var(--muted)')+';margin-bottom:4px;text-transform:uppercase">Tonspris (affald)'+(affKundenBetaler?' 🙋 kunden betaler':'')+'</div>'
+          +'<div style="display:flex;align-items:center;gap:4px"><input class="pris-edit" type="number" value="'+(l.pris_ton||0)+'" min="0" data-field="pris_ton" data-table="afhent_laes" data-id="'+(l.id||'')+'"'+(affKundenBetaler?' disabled style="opacity:0.4;cursor:not-allowed"':'')+'>  <span style="font-size:0.78rem;color:var(--muted)">kr/t</span></div></div>'
           +'<div><div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Timepris ('+l.koeretoej+')</div>'
           +'<div style="display:flex;align-items:center;gap:4px"><input class="pris-edit" type="number" value="'+getKoerPris(l.koeretoej)+'" min="0" data-field="pris_time" data-table="afhent_laes" data-id="'+(l.id||'')+'"> <span style="font-size:0.78rem;color:var(--muted)">kr/t</span></div></div>'
           +'</div>';
@@ -1044,9 +1045,10 @@ function renderSubtab(type){
           +'</div>';
         cell.innerHTML+='<div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px">Køretøj: <span style="color:var(--text)">'+l.koeretoej+'</span></div>';
 
+        var levKundenBetaler = l.betaler==='kunde';
         cell.innerHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'
-          +'<div><div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Tonspris (materiale)</div>'
-          +'<div style="display:flex;align-items:center;gap:4px"><input class="pris-edit" type="number" value="'+(l.pris_ton||0)+'" min="0" data-field="pris_ton" data-table="lev_laes" data-id="'+(l.id||'')+'"> <span style="font-size:0.78rem;color:var(--muted)">kr/t</span></div></div>'
+          +'<div><div style="font-size:0.72rem;color:'+(levKundenBetaler?'var(--red)':'var(--muted)')+';margin-bottom:4px;text-transform:uppercase">Tonspris (materiale)'+(levKundenBetaler?' 🙋 kunden betaler':'')+'</div>'
+          +'<div style="display:flex;align-items:center;gap:4px"><input class="pris-edit" type="number" value="'+(l.pris_ton||0)+'" min="0" data-field="pris_ton" data-table="lev_laes" data-id="'+(l.id||'')+'"'+(levKundenBetaler?' disabled style="opacity:0.4;cursor:not-allowed"':'')+'>  <span style="font-size:0.78rem;color:var(--muted)">kr/t</span></div></div>'
           +'<div><div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Timepris ('+l.koeretoej+')</div>'
           +'<div style="display:flex;align-items:center;gap:4px"><input class="pris-edit" type="number" value="'+getKoerPris(l.koeretoej)+'" min="0" data-field="pris_time" data-table="lev_laes" data-id="'+(l.id||'')+'"> <span style="font-size:0.78rem;color:var(--muted)">kr/t</span></div></div>'
           +'</div>';
