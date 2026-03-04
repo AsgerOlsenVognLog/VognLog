@@ -797,13 +797,14 @@ async function reloadTure(){
     var d=await sbGet('diverse','tur_id=eq.'+tur.id);
     var b=await sbGet('billeder','tur_id=eq.'+tur.id);
     tur.afhentLaes=(a||[]).map(function(x){
-      console.log('afhent betaler:', JSON.stringify(x.betaler), 'betalingstype:', JSON.stringify(x.betalingstype));
-      if(x.betaler==='kunde') x.pris_ton=0;
-      return x;
+      var r=Object.assign({},x);
+      if(r.betaler==='kunde') r.pris_ton=0;
+      return r;
     });
     tur.levLaes=(l||[]).map(function(x){
-      if(x.betaler==='kunde') x.pris_ton=0;
-      return x;
+      var r=Object.assign({},x);
+      if(r.betaler==='kunde') r.pris_ton=0;
+      return r;
     });
     tur.diversePoster=(d||[]).map(function(x){return{desc:x.beskrivelse,timer:x.timer,koeretoej:x.koeretoej};});
     tur.billeder=b||[];
