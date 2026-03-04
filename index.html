@@ -393,6 +393,21 @@ tr:hover td{background:rgba(245,166,35,.03);}
   </div>
   <div class="card" style="padding:0;overflow:hidden">
     <div class="acc-hdr" onclick="toggleAcc(this)" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;user-select:none">
+      <div class="card-title green" style="margin-bottom:0">➕ Tillægstyper (bigbags, vådjord mv.)</div>
+      <span class="acc-arrow" style="color:var(--muted);font-size:1.2rem;transition:transform .2s">▾</span>
+    </div>
+    <div class="acc-body collapsed" style="padding:0 20px 20px">
+      <div id="list-tillaegstyper"></div>
+      <div class="g3" style="margin-top:14px">
+        <div class="fg"><label>Navn</label><input type="text" id="in-till-navn" placeholder="Fx Bigbags, Vådjordstillæg"></div>
+        <div class="fg"><label>Pris pr. stk (kr.)</label><input type="number" id="in-till-pris" placeholder="0" min="0"></div>
+        <div class="fg"><label>Varenr. i e-conomic</label><input type="number" id="in-till-varenr" placeholder="Fx 10" min="1"></div>
+      </div>
+      <button class="btn-sm" onclick="adminAdd('tillaegstyper')">+ Tilføj tillægstype</button>
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="acc-hdr" onclick="toggleAcc(this)" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;user-select:none">
       <div class="card-title green" style="margin-bottom:0">🚜 Køretøjstyper og timepriser</div>
       <span class="acc-arrow" style="color:var(--muted);font-size:1.2rem;transition:transform .2s">▾</span>
     </div>
@@ -514,7 +529,7 @@ async function uploadImage(file, turId) {
 }
 function getImageUrl(path){return SUPABASE_URL+'/storage/v1/object/public/billeder/'+path;}
 
-var adminData = {kunder:[],chauffoerer:[],affaldstyper:[],leveringstyper:[],anlaeg:[],koeretoej:[]};
+var adminData = {kunder:[],chauffoerer:[],affaldstyper:[],leveringstyper:[],anlaeg:[],koeretoej:[],tillaegstyper:[]};
 var trips = [];
 var pendingImages = [];
 var diverseCount = 0;
@@ -593,7 +608,69 @@ function makeLaesBox(type,idx){
   var b2=document.createElement('div');b2.className='rb';b2.textContent='🙋 Kunden betaler';b2.setAttribute('onclick','pickRb("'+rgId+'",this)');
   rg.appendChild(b1);rg.appendChild(b2);
   box.appendChild(mkField(type==='afhent'?'Hvem betaler afgiften?':'Hvem betaler materialet?',rg));
+
+  if(type==='afhent'){
+    var tillDiv=document.createElement('div');tillDiv.id='till-con-'+idx;tillDiv.style.cssText='margin-top:12px;min-height:0';
+    box.appendChild(tillDiv);
+    var addTillBtn=document.createElement('button');addTillBtn.type='button';addTillBtn.className='btn-sm';
+    addTillBtn.style.cssText='font-size:0.78rem;margin-top:8px';addTillBtn.textContent='+ Tilføj tillæg';
+    (function(i){addTillBtn.onclick=function(){addTillaeg(i);};})(idx);
+    box.appendChild(addTillBtn);
+  }
   return box;
+}
+
+var tillaegCount={};
+function addTillaeg(laesIdx){
+  tillaegCount[laesIdx]=(tillaegCount[laesIdx]||0)+1;
+  var n=tillaegCount[laesIdx];
+  var con=document.getElementById('till-con-'+laesIdx);
+  if(!con)return;
+  var row=document.createElement('div');row.id='till-row-'+laesIdx+'-'+n;
+  row.style.cssText='display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;background:rgba(255,255,255,0.03);border-radius:8px;padding:10px';
+  var sel=document.createElement('select');sel.id='till-'+laesIdx+'-'+n+'-type';
+  var defOpt=document.createElement('option');defOpt.value='';defOpt.textContent='Vælg tillæg...';sel.appendChild(defOpt);
+  adminData.tillaegstyper.forEach(function(t){
+    var o=document.createElement('option');
+    o.value=JSON.stringify({navn:t.navn,pris:t.pris,varenr:t.varenr});
+    o.textContent=t.navn+(parseFloat(t.pris)>0?' ('+t.pris+' kr./stk)':'');
+    sel.appendChild(o);
+  });
+  (function(li,ni){sel.onchange=function(){
+    if(!sel.value)return;
+    var d=JSON.parse(sel.value);
+    var prisEl=document.getElementById('till-'+li+'-'+ni+'-pris');
+    if(prisEl)prisEl.value=d.pris||0;
+  };})(laesIdx,n);
+  var antalIn=document.createElement('input');antalIn.type='number';antalIn.id='till-'+laesIdx+'-'+n+'-antal';
+  antalIn.placeholder='Antal';antalIn.min='1';antalIn.step='1';antalIn.value='1';
+  var prisIn=document.createElement('input');prisIn.type='number';prisIn.id='till-'+laesIdx+'-'+n+'-pris';
+  prisIn.placeholder='Pris';prisIn.min='0';
+  var delBtn=document.createElement('button');delBtn.type='button';delBtn.className='btn-del';delBtn.textContent='✕';
+  delBtn.style.cssText='padding:6px 10px';
+  (function(r){delBtn.onclick=function(){r.remove();};})(row);
+  var f1=document.createElement('div');var l1=document.createElement('label');l1.textContent='Tillæg';f1.appendChild(l1);f1.appendChild(sel);
+  var f2=document.createElement('div');var l2=document.createElement('label');l2.textContent='Antal';f2.appendChild(l2);f2.appendChild(antalIn);
+  var f3=document.createElement('div');var l3=document.createElement('label');l3.textContent='Pris/stk';f3.appendChild(l3);f3.appendChild(prisIn);
+  row.appendChild(f1);row.appendChild(f2);row.appendChild(f3);row.appendChild(delBtn);
+  con.appendChild(row);
+}
+
+function collectTillaeg(laesIdx){
+  var result=[];
+  var con=document.getElementById('till-con-'+laesIdx);
+  if(!con)return result;
+  con.querySelectorAll('[id^="till-row-'+laesIdx+'-"]').forEach(function(row){
+    var parts=row.id.split('-');
+    var n=parts[parts.length-1];
+    var sel=document.getElementById('till-'+laesIdx+'-'+n+'-type');
+    var antal=document.getElementById('till-'+laesIdx+'-'+n+'-antal');
+    var pris=document.getElementById('till-'+laesIdx+'-'+n+'-pris');
+    if(!sel||!sel.value)return;
+    var d=JSON.parse(sel.value);
+    result.push({navn:d.navn,antal:parseFloat(antal&&antal.value)||1,pris:parseFloat(pris&&pris.value)||0,varenr:d.varenr||''});
+  });
+  return result;
 }
 
 function mkField(lbl,el){
@@ -654,7 +731,8 @@ function collectLaes(type,count){
     if(type==='afhent'){
       var st=document.getElementById(type+'-'+i+'-type');
       var sa=document.getElementById(type+'-'+i+'-anlaeg');
-      result.push({label:st?st.options[st.selectedIndex].text.replace(/\s*\(EAK.*\)/,''):'',eak:st?st.value:'',tons:tons,timer:timer,anlaeg:sa?sa.value:'',betaler:betaler,koeretoej:koeretoej,beskrivelse:beskrivelse});
+      var tillaeg=collectTillaeg(i);
+      result.push({label:st?st.options[st.selectedIndex].text.replace(/\s*\(EAK.*\)/,''):'',eak:st?st.value:'',tons:tons,timer:timer,anlaeg:sa?sa.value:'',betaler:betaler,koeretoej:koeretoej,beskrivelse:beskrivelse,tillaeg:tillaeg});
     } else {
       var sm=document.getElementById(type+'-'+i+'-mat');
       result.push({label:sm?sm.value:'',tons:tons,timer:timer,betaler:betaler,koeretoej:koeretoej,beskrivelse:beskrivelse});
@@ -729,7 +807,14 @@ async function submitTrip(){
 
   for(var ai=0;ai<afhentLaes.length;ai++){
     var al=afhentLaes[ai];
-    await sbInsert('afhent_laes',{tur_id:turId,label:al.label,eak:al.eak,tons:al.tons,timer:al.timer,anlaeg:al.anlaeg,betaler:al.betaler,koeretoej:al.koeretoej,beskrivelse:al.beskrivelse,pris_ton:getMatPris('aff',al.eak)});
+    var alId=await sbInsert('afhent_laes',{tur_id:turId,label:al.label,eak:al.eak,tons:al.tons,timer:al.timer,anlaeg:al.anlaeg,betaler:al.betaler,koeretoej:al.koeretoej,beskrivelse:al.beskrivelse,pris_ton:getMatPris('aff',al.eak)});
+    var alDbId=alId&&alId[0]?alId[0].id:null;
+    if(alDbId&&al.tillaeg&&al.tillaeg.length){
+      for(var ti=0;ti<al.tillaeg.length;ti++){
+        var tl=al.tillaeg[ti];
+        await sbInsert('tillaeg',{tur_id:turId,laes_id:alDbId,navn:tl.navn,antal:tl.antal,pris:tl.pris,varenr:tl.varenr});
+      }
+    }
   }
   for(var li=0;li<levLaes.length;li++){
     var ll=levLaes[li];
@@ -796,9 +881,11 @@ async function reloadTure(){
     var l=await sbGet('lev_laes','tur_id=eq.'+tur.id);
     var d=await sbGet('diverse','tur_id=eq.'+tur.id);
     var b=await sbGet('billeder','tur_id=eq.'+tur.id);
+    var tll=await sbGet('tillaeg','tur_id=eq.'+tur.id);
     tur.afhentLaes=(a||[]).map(function(x){
       var r=Object.assign({},x);
       if(r.betaler==='kunde') r.pris_ton=0;
+      r.tillaeg=(tll||[]).filter(function(t){return t.laes_id===r.id;});
       return r;
     });
     tur.levLaes=(l||[]).map(function(x){
@@ -1034,6 +1121,13 @@ function renderSubtab(type){
           +'<div style="display:flex;align-items:center;gap:4px"><input class="pris-edit" type="number" value="'+getKoerPris(l.koeretoej)+'" min="0" data-field="pris_time" data-table="afhent_laes" data-id="'+(l.id||'')+'"> <span style="font-size:0.78rem;color:var(--muted)">kr/t</span></div></div>'
           +'</div>';
 
+        // Vis tillaeg
+        (l.tillaeg||[]).forEach(function(tl){
+          var trow=document.createElement('div');
+          trow.style.cssText='margin-top:6px;font-size:0.8rem;color:var(--muted);display:flex;gap:8px;align-items:center';
+          trow.innerHTML='<span style="color:var(--blue)">➕</span><span>'+tl.navn+'</span><span>'+tl.antal+' stk</span><span style="color:var(--text)">'+tl.pris+' kr/stk</span>';
+          cell.appendChild(trow);
+        });
         laesGrid.appendChild(cell);
       });
 
@@ -1335,6 +1429,13 @@ async function sendTurToEco(tur, defaults) {
       var timePris = kundenBetaler ? 0 : (l.pris_time || getKoerPris(l.koeretoej));
       lines.push({lineNumber:lineNum++,sortKey:lineNum,description:l.koeretoej||'Kørsel',quantity:l.timer,unitNetPrice:timePris,discountPercentage:0,product:{productNumber:String(koerVarenr)}});
     }
+    (l.tillaeg||[]).forEach(function(tl){
+      if(!tl.navn||!tl.antal)return;
+      var tlVarenr=tl.varenr?String(parseInt(tl.varenr)):'';
+      var line={lineNumber:lineNum++,sortKey:lineNum,description:tl.navn,quantity:tl.antal,unitNetPrice:tl.pris||0,discountPercentage:0};
+      if(tlVarenr)line.product={productNumber:tlVarenr};
+      lines.push(line);
+    });
   });
 
   // Leveringslæs
@@ -1482,6 +1583,13 @@ async function sendTurGruppeToEco(ture, defaults) {
         var timePris=kundenBetaler?0:(l.pris_time||getKoerPris(l.koeretoej));
         lines.push({lineNumber:lineNum++,sortKey:lineNum,description:l.koeretoej||'Kørsel',quantity:l.timer,unitNetPrice:timePris,discountPercentage:0,product:{productNumber:String(koerVarenr)}});
       }
+      (l.tillaeg||[]).forEach(function(tl){
+        if(!tl.navn||!tl.antal)return;
+        var tlVarenr=tl.varenr?String(parseInt(tl.varenr)):'';
+        var line={lineNumber:lineNum++,sortKey:lineNum,description:tl.navn,quantity:tl.antal,unitNetPrice:tl.pris||0,discountPercentage:0};
+        if(tlVarenr)line.product={productNumber:tlVarenr};
+        lines.push(line);
+      });
     });
     (tur.levLaes||[]).forEach(function(l){
       var kundenBetaler=l.betalingstype==='Kunden betaler';
@@ -1536,7 +1644,8 @@ var adminCfg={
   affaldstyper:{fields:['navn','eak','pris','varenr'],inputs:['in-aff-navn','in-aff-eak','in-aff-pris','in-aff-varenr']},
   leveringstyper:{fields:['navn','pris','varenr'],inputs:['in-lev-navn','in-lev-pris','in-lev-varenr']},
   anlaeg:{fields:['navn','by'],inputs:['in-anlaeg-navn','in-anlaeg-by']},
-  koeretoej:{fields:['navn','pris','varenr'],inputs:['in-koer-navn','in-koer-pris','in-koer-varenr']}
+  koeretoej:{fields:['navn','pris','varenr'],inputs:['in-koer-navn','in-koer-pris','in-koer-varenr']},
+  tillaegstyper:{fields:['navn','pris','varenr'],inputs:['in-till-navn','in-till-pris','in-till-varenr']}
 };
 
 async function adminAdd(key){
@@ -1588,6 +1697,7 @@ function renderAdminList(key,containerId){
 }
 
 function renderAdminLists(){
+  renderAdminList('tillaegstyper','list-tillaegstyper');
   renderAdminList('kunder','list-kunder');renderAdminList('chauffoerer','list-chauffoerer');
   renderAdminList('affaldstyper','list-affaldstyper');renderAdminList('leveringstyper','list-leveringstyper');
   renderAdminList('anlaeg','list-anlaeg');renderAdminList('koeretoej','list-koeretoej');
@@ -1906,7 +2016,7 @@ function applyRole(){
 
 async function loadAppData(){
   document.getElementById('f-dato').value=new Date().toISOString().split('T')[0];
-  var tables=['kunder','chauffoerer','affaldstyper','leveringstyper','anlaeg','koeretoej'];
+  var tables=['kunder','chauffoerer','affaldstyper','leveringstyper','anlaeg','koeretoej','tillaegstyper'];
   for(var i=0;i<tables.length;i++){var d=await sbGet(tables[i],'order=oprettet.asc');if(d)adminData[tables[i]]=d;}
   refreshSelects();buildLaes('afhent',1);buildLaes('lev',0);
   if(currentRole==='admin'||currentRole==='kontor'){
