@@ -1307,7 +1307,7 @@ async function sendTurToEco(tur, defaults) {
   var datoStr = fmtDato(tur.dato);
 
   // Add dato as text line, then varelinjer beneath
-  lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr,quantity:0,unitNetPrice:0,discountPercentage:0});
+  lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr,quantity:1,unitNetPrice:0,discountPercentage:0});
 
   // Afhentningslæs
   (tur.afhentLaes || []).forEach(function(l) {
@@ -1455,7 +1455,7 @@ async function sendTurGruppeToEco(ture, defaults) {
   ture.forEach(function(tur){
     var datoStr = fmtDato(tur.dato);
     // Dato as text line before each tur's lines
-    lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr,quantity:0,unitNetPrice:0,discountPercentage:0});
+    lines.push({lineNumber:lineNum++,sortKey:lineNum,description:datoStr,quantity:1,unitNetPrice:0,discountPercentage:0});
     (tur.afhentLaes||[]).forEach(function(l){
       var kundenBetaler = l.betalingstype==='Kunden betaler';
       var affObj=adminData.affaldstyper.find(function(x){return x.eak===l.eak;});
