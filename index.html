@@ -1930,9 +1930,10 @@ async function opretNyVare(){
   if(!navn){statusEl.style.color='var(--red)';statusEl.textContent='Varenavn er påkrævet';return;}
   statusEl.style.color='var(--muted)';statusEl.textContent='Opretter i e-conomic...';
   try {
-    // Hent næste ledige varenummer
-    var allProds=await ecoGet('/products?pagesize=1&sort=productNumber-');
-    var lastNr=allProds&&allProds.collection&&allProds.collection[0]?parseInt(allProds.collection[0].productNumber)||0:0;
+    // Hent alle varenumre og find næste ledige
+    var allProds=await ecoGet('/products?pagesize=1000');
+    var lastNr=0;
+    if(allProds&&allProds.collection){allProds.collection.forEach(function(p){var n=parseInt(p.productNumber)||0;if(n>lastNr)lastNr=n;});}
     var nextNr=String(lastNr+1);
     var payload={productNumber:nextNr,name:navn,salesPrice:pris,productGroup:{productGroupNumber:gruppe}};
     if(enhed){
