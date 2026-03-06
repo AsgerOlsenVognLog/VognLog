@@ -1830,7 +1830,7 @@ function renderAdminLists(){
 }
 
 
-var _nkMode='cvr';
+var _nkMode='cvr'; var _ecoTermsNr=null;
 
 function nkTab(mode){
   _nkMode=mode;_cvrFetched=null;
@@ -1886,7 +1886,8 @@ async function opretNyKunde(){
   var statusEl=document.getElementById('nk-status');
   statusEl.style.color='var(--muted)';statusEl.textContent='Opretter i e-conomic...';
   try {
-    var payload={paymentTerms:{paymentTermsNumber:4},vatZone:{vatZoneNumber:1},currency:'DKK',customerGroup:{customerGroupNumber:1}};
+    if(!_ecoTermsNr){var td=await ecoGet('/payment-terms');_ecoTermsNr=td&&td.collection?td.collection.find(function(t){return t.name&&t.name.toLowerCase().indexOf('30')>-1;})||td.collection[0]:null;_ecoTermsNr=_ecoTermsNr?_ecoTermsNr.paymentTermsNumber:1;}
+    var payload={paymentTerms:{paymentTermsNumber:_ecoTermsNr},vatZone:{vatZoneNumber:1},currency:'DKK',customerGroup:{customerGroupNumber:1}};
     if(_nkMode==='cvr'){
       var cvr=document.getElementById('nk-cvr').value.trim().replace(/\s/g,'');
       var email=document.getElementById('nk-email').value.trim();
@@ -1935,7 +1936,8 @@ async function adminOpretOgSendKunde(){
   if(!navn){alert('Udfyld kundenavn');return;}
   statusEl.style.color='var(--muted)';statusEl.textContent='Opretter...';
   try {
-    var payload={name:navn,paymentTerms:{paymentTermsNumber:4},vatZone:{vatZoneNumber:1},currency:'DKK',customerGroup:{customerGroupNumber:1}};
+    if(!_ecoTermsNr){var td2=await ecoGet('/payment-terms');_ecoTermsNr=td2&&td2.collection?td2.collection.find(function(t){return t.name&&t.name.toLowerCase().indexOf('30')>-1;})||td2.collection[0]:null;_ecoTermsNr=_ecoTermsNr?_ecoTermsNr.paymentTermsNumber:1;}
+    var payload={name:navn,paymentTerms:{paymentTermsNumber:_ecoTermsNr},vatZone:{vatZoneNumber:1},currency:'DKK',customerGroup:{customerGroupNumber:1}};
     if(adresse)payload.address=adresse;
     var res=await ecoPost('/customers',payload);
     if(!res||!res.customerNumber)throw new Error('Ingen kundenummer returneret');
