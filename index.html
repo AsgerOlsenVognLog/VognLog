@@ -159,12 +159,12 @@ tr:hover td{background:rgba(245,166,35,.03);}
   <div class="card">
     <div class="card-title"><span class="step-num">1</span> Kundeinfo og dato</div>
     <div class="g2">
-      <div class="fg"><label>Kunde</label><select id="f-kunde"><option value="">Vælg kunde...</option></select></div>
+      <div class="fg"><label>Kunde</label><input type="text" id="f-kunde-search" placeholder="🔍 Søg kunde..." oninput="filterSelect('f-kunde',this.value)" style="margin-bottom:4px"><select id="f-kunde"><option value="">Vælg kunde...</option></select></div>
       <div class="fg"><label>Adresse / arbejdssted</label><input type="text" id="f-adresse" placeholder="Fx Industrivej 12, Odense"></div>
     </div>
     <div class="g2">
       <div class="fg"><label>Dato</label><input type="date" id="f-dato"></div>
-      <div class="fg"><label>Chauffør</label><select id="f-chauffoer"></select></div>
+      <div class="fg"><label>Chauffør</label><input type="text" id="f-chauffoer-search" placeholder="🔍 Søg chauffør..." oninput="filterSelect('f-chauffoer',this.value)" style="margin-bottom:4px"><select id="f-chauffoer"></select></div>
     </div>
     <div class="fg">
       <label>Turfrekvens</label>
@@ -588,21 +588,19 @@ function makeLaesBox(type,idx){
 
   if(type==='afhent'){
     var r1=document.createElement('div');r1.className='g2';r1.style.marginBottom='12px';
-    var selType=document.createElement('select');selType.id=type+'-'+idx+'-type';
-    var o0=document.createElement('option');o0.value='';o0.textContent='Vælg type...';selType.appendChild(o0);
-    adminData.affaldstyper.forEach(function(af){var o=document.createElement('option');o.value=af.eak;o.textContent=af.navn+' (EAK '+af.eak+')';selType.appendChild(o);});
-    var selAnlaeg=document.createElement('select');selAnlaeg.id=type+'-'+idx+'-anlaeg';
-    adminData.anlaeg.forEach(function(a){var o=document.createElement('option');o.textContent=a.navn+(a.by?' – '+a.by:'');o.value=a.navn;selAnlaeg.appendChild(o);});
-    r1.appendChild(mkField('Affaldstype',selType));r1.appendChild(mkField('Modtageanlæg',selAnlaeg));
+    var wType=mkSearchSelect(type+'-'+idx+'-type','affaldstype',adminData.affaldstyper,function(x){return x.eak;},function(x){return x.navn+' (EAK '+x.eak+')';});
+    var selType=wType.getSelect();
+    var wAnlaeg=mkSearchSelect(type+'-'+idx+'-anlaeg','anlæg',adminData.anlaeg,function(x){return x.navn;},function(x){return x.navn+(x.by?' – '+x.by:'');});
+    var selAnlaeg=wAnlaeg.getSelect();
+    r1.appendChild(mkField('Affaldstype',wType));r1.appendChild(mkField('Modtageanlæg',wAnlaeg));
     box.appendChild(r1);
   } else {
     var rm=document.createElement('div');rm.style.marginBottom='12px';
-    var selMat=document.createElement('select');selMat.id=type+'-'+idx+'-mat';
-    adminData.leveringstyper.forEach(function(lv){var o=document.createElement('option');o.textContent=lv.navn;selMat.appendChild(o);});
-    var selLevSted=document.createElement('select');selLevSted.id=type+'-'+idx+'-levsted';
-    var lsOpt=document.createElement('option');lsOpt.value='';lsOpt.textContent='Vælg grusgrav...';selLevSted.appendChild(lsOpt);
-    adminData.grusgrave.forEach(function(ls){var o=document.createElement('option');o.textContent=ls.navn+(ls.by?' – '+ls.by:'');o.value=ls.navn;selLevSted.appendChild(o);});
-    rm.appendChild(mkField('Materiale',selMat));rm.appendChild(mkField('Grusgrav',selLevSted));box.appendChild(rm);
+    var wMat=mkSearchSelect(type+'-'+idx+'-mat','materiale',adminData.leveringstyper,function(x){return x.navn;},function(x){return x.navn;});
+    var selMat=wMat.getSelect();
+    var wGrusgrav=mkSearchSelect(type+'-'+idx+'-levsted','grusgrav',adminData.grusgrave,function(x){return x.navn;},function(x){return x.navn+(x.by?' – '+x.by:'');});
+    var selLevSted=wGrusgrav.getSelect();
+    rm.appendChild(mkField('Materiale',wMat));rm.appendChild(mkField('Grusgrav',wGrusgrav));box.appendChild(rm);
   }
 
   var r2=document.createElement('div');r2.className='g2';r2.style.marginBottom='12px';
@@ -613,9 +611,9 @@ function makeLaesBox(type,idx){
 
   // Køretøj
   var r3=document.createElement('div');r3.style.marginBottom='12px';
-  var selKoer=document.createElement('select');selKoer.id=type+'-'+idx+'-koeretoej';
-  adminData.koeretoej.forEach(function(k){var o=document.createElement('option');o.textContent=k.navn+(k.pris>0?' (kr. '+k.pris+'/t)':'');o.value=k.navn;selKoer.appendChild(o);});
-  r3.appendChild(mkField('Køretøj',selKoer));box.appendChild(r3);
+  var wKoer=mkSearchSelect(type+'-'+idx+'-koeretoej','køretøj',adminData.koeretoej,function(x){return x.navn;},function(x){return x.navn+(x.pris>0?' (kr. '+x.pris+'/t)':'');});
+  var selKoer=wKoer.getSelect();
+  r3.appendChild(mkField('Køretøj',wKoer));box.appendChild(r3);
 
   // Beskrivelse til faktura
   var r4=document.createElement('div');r4.style.marginBottom='12px';
@@ -651,7 +649,9 @@ function addTillaeg(laesIdx){
   row.style.cssText='display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;background:rgba(255,255,255,0.03);border-radius:8px;padding:10px';
   var sel=document.createElement('select');sel.id='till-'+laesIdx+'-'+n+'-type';
   var defOpt=document.createElement('option');defOpt.value='';defOpt.textContent='Vælg tillæg...';sel.appendChild(defOpt);
-  adminData.tillaegstyper.forEach(function(t){
+  var defTill=document.createElement('option');defTill.value='';defTill.textContent='Vælg tillæg...';sel.appendChild(defTill);
+  var sortedTill=[].concat(adminData.tillaegstyper).sort(function(a,b){return a.navn.localeCompare(b.navn,'da');});
+  sortedTill.forEach(function(t){
     var o=document.createElement('option');
     o.value=JSON.stringify({navn:t.navn,pris:t.pris,varenr:t.varenr});
     o.textContent=t.navn+(parseFloat(t.pris)>0?' ('+t.pris+' kr./stk)':'');
@@ -700,6 +700,33 @@ function mkField(lbl,el){
   fg.appendChild(l);fg.appendChild(el);return fg;
 }
 
+// Søgbar select wrapper
+function mkSearchSelect(id,placeholder,items,valFn,lblFn){
+  var wrap=document.createElement('div');wrap.style.cssText='position:relative';
+  var searchIn=document.createElement('input');
+  searchIn.type='text';searchIn.id=id+'-search';searchIn.placeholder='🔍 Søg '+placeholder.toLowerCase()+'...';
+  searchIn.style.cssText='width:100%;box-sizing:border-box;margin-bottom:4px';
+  var sel=document.createElement('select');sel.id=id;sel.size=1;
+  function populate(filter){
+    var prev=sel.value;
+    sel.innerHTML='';
+    var def=document.createElement('option');def.value='';def.textContent='Vælg '+placeholder.toLowerCase()+'...';sel.appendChild(def);
+    var sorted=[].concat(items).sort(function(a,b){return lblFn(a).localeCompare(lblFn(b),'da');});
+    sorted.forEach(function(item){
+      var lbl=lblFn(item);
+      if(filter&&lbl.toLowerCase().indexOf(filter.toLowerCase())<0)return;
+      var o=document.createElement('option');o.value=valFn(item);o.textContent=lbl;sel.appendChild(o);
+    });
+    if(prev)sel.value=prev;
+  }
+  populate('');
+  searchIn.addEventListener('input',function(){populate(searchIn.value);});
+  wrap.appendChild(searchIn);wrap.appendChild(sel);
+  // expose getValue/setValue on wrap
+  wrap.getSelect=function(){return sel;};
+  return wrap;
+}
+
 // DIVERSE med køretøjsvalg
 function addDiverse(){
   diverseCount++;
@@ -718,9 +745,9 @@ function addDiverse(){
 
   // Køretøjsvalg til diverse
   var gk=document.createElement('div');gk.style.marginBottom='0';
-  var selK=document.createElement('select');selK.id='dvs-'+i+'-koeretoej';
-  adminData.koeretoej.forEach(function(k){var o=document.createElement('option');o.textContent=k.navn+(k.pris>0?' (kr. '+k.pris+'/t)':'');o.value=k.navn;selK.appendChild(o);});
-  gk.appendChild(mkField('Køretøj',selK));box.appendChild(gk);
+  var wKD=mkSearchSelect('dvs-'+i+'-koeretoej','køretøj',adminData.koeretoej,function(x){return x.navn;},function(x){return x.navn+(x.pris>0?' (kr. '+x.pris+'/t)':'');});
+  var selK=wKD.getSelect();
+  gk.appendChild(mkField('Køretøj',wKD));box.appendChild(gk);
 
   document.getElementById('con-diverse').appendChild(box);
 }
@@ -1895,11 +1922,24 @@ function openEditModal(key,idx){
 
 function closeEditModal(){document.getElementById('edit-modal').classList.remove('show');}
 
+function filterSelect(selId, query){
+  var sel=document.getElementById(selId);
+  if(!sel)return;
+  var prev=sel.value;
+  Array.from(sel.options).forEach(function(o){
+    if(!o.value){o.style.display='';return;}
+    o.style.display=o.textContent.toLowerCase().indexOf(query.toLowerCase())>=0?'':'none';
+  });
+  if(prev)sel.value=prev;
+}
+
 function refreshSelects(){
   var kEl=document.getElementById('f-kunde');
-  if(kEl){var kv=kEl.value;kEl.innerHTML='<option value="">Vælg kunde...</option>';adminData.kunder.forEach(function(k){var o=document.createElement('option');o.textContent=k.navn;kEl.appendChild(o);});kEl.value=kv;}
+  if(kEl){var kv=kEl.value;kEl.innerHTML='<option value="">Vælg kunde...</option>';
+    [].concat(adminData.kunder).sort(function(a,b){return a.navn.localeCompare(b.navn,'da');}).forEach(function(k){var o=document.createElement('option');o.textContent=k.navn;kEl.appendChild(o);});kEl.value=kv;}
   var cEl=document.getElementById('f-chauffoer');
-  if(cEl){var cv=cEl.value;cEl.innerHTML='';adminData.chauffoerer.forEach(function(c){var o=document.createElement('option');o.textContent=c.navn;cEl.appendChild(o);});cEl.value=cv;}
+  if(cEl){var cv=cEl.value;cEl.innerHTML='';
+    [].concat(adminData.chauffoerer).sort(function(a,b){return a.navn.localeCompare(b.navn,'da');}).forEach(function(c){var o=document.createElement('option');o.textContent=c.navn;cEl.appendChild(o);});cEl.value=cv;}
 }
 
 function rebuildLaes(){
