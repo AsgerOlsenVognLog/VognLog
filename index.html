@@ -688,7 +688,7 @@ function makeLaesBox(type,idx){
     var selType=wType.getSelect();
     var wAnlaeg=mkDD(type+'-'+idx+'-anlaeg','anlæg',adminData.anlaeg,function(x){return x.navn;},function(x){return x.navn+(x.by?' – '+x.by:'');});
     var selAnlaeg=wAnlaeg.getSelect();
-    r1.appendChild(mkField('Affaldstype',wType));r1.appendChild(mkField('Modtageanlæg',wAnlaeg));
+    r1.appendChild(mkFieldNew('Affaldstype',wType,'affaldstyper',4));r1.appendChild(mkField('Modtageanlæg',wAnlaeg));
     box.appendChild(r1);
   } else {
     var rm=document.createElement('div');rm.style.marginBottom='12px';
@@ -696,7 +696,7 @@ function makeLaesBox(type,idx){
     var selMat=wMat.getSelect();
     var wGrusgrav=mkDD(type+'-'+idx+'-levsted','grusgrav',adminData.grusgrave,function(x){return x.navn;},function(x){return x.navn+(x.by?' – '+x.by:'');});
     var selLevSted=wGrusgrav.getSelect();
-    rm.appendChild(mkField('Materiale',wMat));rm.appendChild(mkField('Grusgrav',wGrusgrav));box.appendChild(rm);
+    rm.appendChild(mkFieldNew('Materiale',wMat,'leveringstyper',5));rm.appendChild(mkField('Grusgrav',wGrusgrav));box.appendChild(rm);
   }
 
   var r2=document.createElement('div');r2.className='g2';r2.style.marginBottom='12px';
@@ -709,7 +709,7 @@ function makeLaesBox(type,idx){
   var r3=document.createElement('div');r3.style.marginBottom='12px';
   var wKoer=mkDD(type+'-'+idx+'-koeretoej','køretøj',adminData.koeretoej,function(x){return x.navn;},function(x){return x.navn+(x.pris>0?' (kr. '+x.pris+'/t)':'');});
   var selKoer=wKoer.getSelect();
-  r3.appendChild(mkField('Køretøj',wKoer));box.appendChild(r3);
+  r3.appendChild(mkFieldNew('Køretøj',wKoer,'koeretoej',1));box.appendChild(r3);
 
   // Beskrivelse til faktura
   var r4=document.createElement('div');r4.style.marginBottom='12px';
@@ -766,7 +766,13 @@ function addTillaeg(laesIdx){
   var delBtn=document.createElement('button');delBtn.type='button';delBtn.className='btn-del';delBtn.textContent='✕';
   delBtn.style.cssText='padding:6px 10px';
   (function(r){delBtn.onclick=function(){r.remove();};})(row);
-  var f1=document.createElement('div');var l1=document.createElement('label');l1.textContent='Tillæg';f1.appendChild(l1);f1.appendChild(sel);
+  var f1=document.createElement('div');
+  var l1hdr=document.createElement('div');l1hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:4px';
+  var l1=document.createElement('label');l1.textContent='Tillæg';l1.style.marginBottom='0';
+  var newTillBtn=document.createElement('button');newTillBtn.type='button';
+  newTillBtn.style.cssText='font-size:0.7rem;padding:2px 8px;background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.3);border-radius:6px;color:var(--accent);cursor:pointer';
+  newTillBtn.textContent='+ Opret ny';newTillBtn.onclick=function(){openNyVareModal('tillaegstyper',5);};
+  l1hdr.appendChild(l1);l1hdr.appendChild(newTillBtn);f1.appendChild(l1hdr);f1.appendChild(sel);
   var f2=document.createElement('div');var l2=document.createElement('label');l2.textContent='Antal';f2.appendChild(l2);f2.appendChild(antalIn);
   var f3=document.createElement('div');var l3=document.createElement('label');l3.textContent='Pris/stk';f3.appendChild(l3);f3.appendChild(prisIn);
   row.appendChild(f1);row.appendChild(f2);row.appendChild(f3);row.appendChild(delBtn);
@@ -794,6 +800,18 @@ function mkField(lbl,el){
   var fg=document.createElement('div');fg.className='fg';fg.style.marginBottom='0';
   var l=document.createElement('label');l.textContent=lbl;
   fg.appendChild(l);fg.appendChild(el);return fg;
+}
+
+function mkFieldNew(lbl,el,vareType,vareGruppe){
+  var fg=document.createElement('div');fg.className='fg';fg.style.marginBottom='0';
+  var hdr=document.createElement('div');hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:4px';
+  var l=document.createElement('label');l.textContent=lbl;l.style.marginBottom='0';
+  var btn=document.createElement('button');btn.type='button';
+  btn.style.cssText='font-size:0.7rem;padding:2px 8px;background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.3);border-radius:6px;color:var(--accent);cursor:pointer;white-space:nowrap';
+  btn.textContent='+ Opret ny';
+  (function(vt,vg){btn.onclick=function(){openNyVareModal(vt,vg);};})(vareType,vareGruppe);
+  hdr.appendChild(l);hdr.appendChild(btn);
+  fg.appendChild(hdr);fg.appendChild(el);return fg;
 }
 
 // Søgbar dropdown
@@ -1890,11 +1908,11 @@ var _vareGruppeDefaults={
   tillaegstyper:{gruppe:5,subtitle:'Tilføjes som Tillægstype – fx bigbags, vådjordstillæg'}
 };
 
-function openNyVareModal(type){
+function openNyVareModal(type,gruppeOverride){
   _nyVareType=type;
   var def=_vareGruppeDefaults[type]||{gruppe:1,subtitle:''};
   document.getElementById('ny-vare-subtitle').textContent=def.subtitle;
-  document.getElementById('nv-gruppe').value=String(def.gruppe);
+  document.getElementById('nv-gruppe').value=String(gruppeOverride||def.gruppe);
   document.getElementById('nv-navn').value='';
   document.getElementById('nv-pris').value='';
   document.getElementById('nv-enhed').value=type==='koeretoej'?'time':type==='affaldstyper'||type==='leveringstyper'?'ton':'stk';
@@ -1929,7 +1947,7 @@ async function opretNyVare(){
     var dbRes=await sbInsert(_nyVareType,item);
     if(dbRes&&dbRes[0])item.id=dbRes[0].id;
     adminData[_nyVareType].push(item);
-    renderAdminLists();rebuildLaes();refreshSelects();
+    renderAdminLists();rebuildLaes();refreshSelects();renderAdminList(_nyVareType,'list-'+_nyVareType);
     setTimeout(function(){document.getElementById('ny-vare-modal').classList.remove('show');},1500);
   } catch(e){
     statusEl.style.color='var(--red)';statusEl.textContent='Fejl: '+e.message;
