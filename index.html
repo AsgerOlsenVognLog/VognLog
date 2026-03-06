@@ -368,7 +368,10 @@ tr:hover td{background:rgba(245,166,35,.03);}
         <div class="fg"><label>Pris pr. ton (kr.)</label><input type="number" id="in-aff-pris" placeholder="0" min="0"></div>
         <div class="fg"><label>Varenr. i e-conomic</label><input type="number" id="in-aff-varenr" placeholder="Fx 5" min="1"></div>
       </div>
-      <button class="btn-sm" onclick="adminAdd('affaldstyper')">+ Tilføj affaldstype</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+        <button class="btn-sm" onclick="adminAdd('affaldstyper')">+ Gem kun i VognLog</button>
+        <button class="btn-eco" onclick="openNyVareModal('affaldstyper')" style="font-size:0.8rem;padding:7px 14px">⚡ Opret i e-conomic + VognLog</button>
+      </div>
     </div>
   </div>
   <div class="card" style="padding:0;overflow:hidden">
@@ -387,7 +390,10 @@ tr:hover td{background:rgba(245,166,35,.03);}
         <div class="fg"><label>Pris pr. ton (kr.)</label><input type="number" id="in-lev-pris" placeholder="0" min="0"></div>
         <div class="fg"><label>Varenr. i e-conomic</label><input type="number" id="in-lev-varenr" placeholder="Fx 4" min="1"></div>
       </div>
-      <button class="btn-sm" onclick="adminAdd('leveringstyper')">+ Tilføj leveringstype</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+        <button class="btn-sm" onclick="adminAdd('leveringstyper')">+ Gem kun i VognLog</button>
+        <button class="btn-eco" onclick="openNyVareModal('leveringstyper')" style="font-size:0.8rem;padding:7px 14px">⚡ Opret i e-conomic + VognLog</button>
+      </div>
     </div>
   </div>
   <div class="card" style="padding:0;overflow:hidden">
@@ -432,7 +438,10 @@ tr:hover td{background:rgba(245,166,35,.03);}
         <div class="fg"><label>Pris pr. stk (kr.)</label><input type="number" id="in-till-pris" placeholder="0" min="0"></div>
         <div class="fg"><label>Varenr. i e-conomic</label><input type="number" id="in-till-varenr" placeholder="Fx 10" min="1"></div>
       </div>
-      <button class="btn-sm" onclick="adminAdd('tillaegstyper')">+ Tilføj tillægstype manuelt</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+        <button class="btn-sm" onclick="adminAdd('tillaegstyper')">+ Gem kun i VognLog</button>
+        <button class="btn-eco" onclick="openNyVareModal('tillaegstyper')" style="font-size:0.8rem;padding:7px 14px">⚡ Opret i e-conomic + VognLog</button>
+      </div>
     </div>
   </div>
   <div class="card" style="padding:0;overflow:hidden">
@@ -450,7 +459,47 @@ tr:hover td{background:rgba(245,166,35,.03);}
         <div class="fg"><label>Timepris (kr.)</label><input type="number" id="in-koer-pris" placeholder="0" min="0"></div>
         <div class="fg"><label>Varenr. i e-conomic</label><input type="number" id="in-koer-varenr" placeholder="Fx 1" min="1"></div>
       </div>
-      <button class="btn-sm" onclick="adminAdd('koeretoej')">+ Tilføj køretøj manuelt</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+        <button class="btn-sm" onclick="adminAdd('koeretoej')">+ Gem kun i VognLog</button>
+        <button class="btn-eco" onclick="openNyVareModal('koeretoej')" style="font-size:0.8rem;padding:7px 14px">⚡ Opret i e-conomic + VognLog</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ny vare -->
+<div class="overlay" id="ny-vare-modal">
+  <div class="modal" style="max-width:460px">
+    <h3 style="color:var(--accent)">📦 Opret ny vare i e-conomic</h3>
+    <p id="ny-vare-subtitle" style="color:var(--muted);font-size:0.82rem;margin:6px 0 16px"></p>
+    <div class="fg" style="margin-bottom:12px">
+      <label>Varegruppe i e-conomic</label>
+      <select id="nv-gruppe">
+        <option value="1">1 – Kørsel</option>
+        <option value="2">2 – Nedrivninger mv.</option>
+        <option value="3">3 – Oparbejdning jern/metal</option>
+        <option value="4">4 – Afgift</option>
+        <option value="5">5 – Materialer</option>
+        <option value="6">6 – Jern mv. uden moms</option>
+      </select>
+    </div>
+    <div class="fg" style="margin-bottom:12px"><label>Varenavn *</label><input type="text" id="nv-navn" placeholder="Fx Kranvogn, Bigbags, Afgift blandet affald"></div>
+    <div class="g2" style="margin-bottom:12px">
+      <div class="fg" style="margin-bottom:0"><label>Salgspris (kr.)</label><input type="number" id="nv-pris" placeholder="0" min="0" step="0.01"></div>
+      <div class="fg" style="margin-bottom:0"><label>Enhed</label>
+        <select id="nv-enhed">
+          <option value="">– ingen –</option>
+          <option value="time">Time</option>
+          <option value="ton">Ton</option>
+          <option value="stk">Stk.</option>
+          <option value="km">Km</option>
+        </select>
+      </div>
+    </div>
+    <div id="nv-status" style="font-size:0.85rem;min-height:20px;margin-bottom:12px"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn-sm" onclick="document.getElementById('ny-vare-modal').classList.remove('show')">Annullér</button>
+      <button class="btn-eco" onclick="opretNyVare()" style="padding:10px 20px">⚡ Opret vare</button>
     </div>
   </div>
 </div>
@@ -473,11 +522,13 @@ tr:hover td{background:rgba(245,166,35,.03);}
         <div style="font-size:0.82rem;color:var(--muted);margin-top:2px" id="nk-cvr-adresse"></div>
       </div>
       <div class="fg" style="margin-bottom:12px"><label>Email (valgfrit)</label><input type="email" id="nk-email" placeholder="Fx kontakt@firma.dk"></div>
+      <div class="fg" style="margin-bottom:12px"><label>EAN-nummer (valgfrit)</label><input type="text" id="nk-ean" placeholder="Fx 5790001234567" maxlength="13"></div>
     </div>
     <div id="nk-panel-privat" style="display:none">
       <div class="fg" style="margin-bottom:12px"><label>Navn *</label><input type="text" id="nk-navn" placeholder="Fx Jens Hansen"></div>
       <div class="fg" style="margin-bottom:12px"><label>Adresse</label><input type="text" id="nk-adresse" placeholder="Fx Rosenvej 4, 8000 Aarhus"></div>
       <div class="fg" style="margin-bottom:12px"><label>Email (valgfrit)</label><input type="email" id="nk-email-privat" placeholder="Fx jens@mail.dk"></div>
+      <div class="fg" style="margin-bottom:12px"><label>EAN-nummer (valgfrit)</label><input type="text" id="nk-ean-privat" placeholder="Fx 5790001234567" maxlength="13"></div>
     </div>
     <div id="nk-status" style="font-size:0.85rem;min-height:20px;margin-bottom:12px"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
@@ -1831,6 +1882,59 @@ function renderAdminLists(){
 
 
 var _nkMode='cvr'; var _ecoTermsNr=null;
+var _nyVareType=null;
+var _vareGruppeDefaults={
+  affaldstyper:{gruppe:4,subtitle:'Tilføjes som Affaldstype – bruges under afhentningslæs'},
+  leveringstyper:{gruppe:5,subtitle:'Tilføjes som Leveringstype/materiale – bruges under leveringslæs'},
+  koeretoej:{gruppe:1,subtitle:'Tilføjes som Køretøj – bruges til timepris under læs og diverse'},
+  tillaegstyper:{gruppe:5,subtitle:'Tilføjes som Tillægstype – fx bigbags, vådjordstillæg'}
+};
+
+function openNyVareModal(type){
+  _nyVareType=type;
+  var def=_vareGruppeDefaults[type]||{gruppe:1,subtitle:''};
+  document.getElementById('ny-vare-subtitle').textContent=def.subtitle;
+  document.getElementById('nv-gruppe').value=String(def.gruppe);
+  document.getElementById('nv-navn').value='';
+  document.getElementById('nv-pris').value='';
+  document.getElementById('nv-enhed').value=type==='koeretoej'?'time':type==='affaldstyper'||type==='leveringstyper'?'ton':'stk';
+  document.getElementById('nv-status').textContent='';
+  document.getElementById('ny-vare-modal').classList.add('show');
+  setTimeout(function(){document.getElementById('nv-navn').focus();},100);
+}
+
+async function opretNyVare(){
+  var statusEl=document.getElementById('nv-status');
+  var navn=document.getElementById('nv-navn').value.trim();
+  var pris=parseFloat(document.getElementById('nv-pris').value)||0;
+  var gruppe=parseInt(document.getElementById('nv-gruppe').value)||1;
+  var enhed=document.getElementById('nv-enhed').value;
+  if(!navn){statusEl.style.color='var(--red)';statusEl.textContent='Varenavn er påkrævet';return;}
+  statusEl.style.color='var(--muted)';statusEl.textContent='Opretter i e-conomic...';
+  try {
+    var payload={name:navn,salesPrice:pris,productGroup:{productGroupNumber:gruppe}};
+    if(enhed){
+      // Find unit number from e-conomic
+      var units=await ecoGet('/units');
+      var unit=units&&units.collection?units.collection.find(function(u){return u.name&&u.name.toLowerCase().indexOf(enhed.toLowerCase())>=0;}):null;
+      if(unit)payload.unit={unitNumber:unit.unitNumber};
+    }
+    var res=await ecoPost('/products',payload);
+    if(!res||!res.productNumber)throw new Error('Ingen varenummer returneret');
+    var varenr=res.productNumber;
+    statusEl.style.color='var(--green)';statusEl.textContent='✅ Oprettet som varenr. '+varenr;
+    // Save to VognLog in correct category
+    var item={navn:navn,pris:pris,varenr:String(varenr)};
+    if(_nyVareType==='affaldstyper')item.eak='';
+    var dbRes=await sbInsert(_nyVareType,item);
+    if(dbRes&&dbRes[0])item.id=dbRes[0].id;
+    adminData[_nyVareType].push(item);
+    renderAdminLists();rebuildLaes();refreshSelects();
+    setTimeout(function(){document.getElementById('ny-vare-modal').classList.remove('show');},1500);
+  } catch(e){
+    statusEl.style.color='var(--red)';statusEl.textContent='Fejl: '+e.message;
+  }
+}
 
 function nkTab(mode){
   _nkMode=mode;_cvrFetched=null;
@@ -1849,9 +1953,11 @@ function openNyKundeModal(){
   document.getElementById('nk-cvr-navn').textContent='';
   document.getElementById('nk-cvr-adresse').textContent='';
   document.getElementById('nk-email').value='';
+  document.getElementById('nk-ean').value='';
   document.getElementById('nk-navn').value='';
   document.getElementById('nk-adresse').value='';
   document.getElementById('nk-email-privat').value='';
+  document.getElementById('nk-ean-privat').value='';
   document.getElementById('nk-status').textContent='';
   nkTab('cvr');
   document.getElementById('ny-kunde-modal').classList.add('show');
@@ -1899,6 +2005,8 @@ async function opretNyKunde(){
       payload.zip=_cvrFetched.postnr;
       payload.corporateIdentificationNumber=cvr;
       if(email)payload.email=email;
+      var ean=document.getElementById('nk-ean').value.trim();
+      if(ean)payload.ean=ean;
     } else {
       var navn=document.getElementById('nk-navn').value.trim();
       var adresse=document.getElementById('nk-adresse').value.trim();
@@ -1907,6 +2015,8 @@ async function opretNyKunde(){
       payload.name=navn;
       if(adresse)payload.address=adresse;
       if(emailP)payload.email=emailP;
+      var eanP=document.getElementById('nk-ean-privat').value.trim();
+      if(eanP)payload.ean=eanP;
     }
     var res=await ecoPost('/customers',payload);
     if(!res||!res.customerNumber)throw new Error('Ingen kundenummer returneret');
