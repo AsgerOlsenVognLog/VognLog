@@ -459,11 +459,20 @@ tr:hover td{background:rgba(245,166,35,.03);}
 <div class="overlay" id="ny-kunde-modal">
   <div class="modal" style="max-width:460px">
     <h3 style="color:var(--accent)">👤 Opret ny kunde</h3>
-    <p style="color:var(--muted);font-size:0.85rem;margin:8px 0 16px">Kunden oprettes i både VognLog og e-conomic automatisk.</p>
-    <div class="fg" style="margin-bottom:12px"><label>Kundenavn *</label><input type="text" id="nk-navn" placeholder="Fx Hansen Byg A/S"></div>
-    <div class="fg" style="margin-bottom:12px"><label>Adresse</label><input type="text" id="nk-adresse" placeholder="Fx Industrivej 12, Odense"></div>
-    <div class="fg" style="margin-bottom:12px"><label>CVR-nummer (valgfrit)</label><input type="text" id="nk-cvr" placeholder="Fx 12345678"></div>
-    <div class="fg" style="margin-bottom:16px"><label>Betalingsbetingelse (e-conomic nr.)</label><input type="number" id="nk-terms" placeholder="Fx 1" value="1" min="1"></div>
+    <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px">
+      <button type="button" id="nk-tab-cvr" onclick="nkTab('cvr')" style="flex:1;padding:9px;background:rgba(245,166,35,.12);border:none;color:var(--accent);font-weight:600;cursor:pointer;font-size:0.85rem">🏢 Virksomhed (CVR)</button>
+      <button type="button" id="nk-tab-privat" onclick="nkTab('privat')" style="flex:1;padding:9px;background:transparent;border:none;color:var(--muted);font-weight:600;cursor:pointer;font-size:0.85rem">👤 Privatkunde</button>
+    </div>
+    <div id="nk-panel-cvr">
+      <p style="color:var(--muted);font-size:0.82rem;margin-bottom:14px">e-conomic henter selv navn og adresse fra CVR-nummeret.</p>
+      <div class="fg" style="margin-bottom:12px"><label>CVR-nummer *</label><input type="text" id="nk-cvr" placeholder="Fx 12345678" maxlength="8"></div>
+      <div class="fg" style="margin-bottom:12px"><label>Email (valgfrit)</label><input type="email" id="nk-email" placeholder="Fx kontakt@firma.dk"></div>
+    </div>
+    <div id="nk-panel-privat" style="display:none">
+      <div class="fg" style="margin-bottom:12px"><label>Navn *</label><input type="text" id="nk-navn" placeholder="Fx Jens Hansen"></div>
+      <div class="fg" style="margin-bottom:12px"><label>Adresse</label><input type="text" id="nk-adresse" placeholder="Fx Rosenvej 4, 8000 Aarhus"></div>
+      <div class="fg" style="margin-bottom:12px"><label>Email (valgfrit)</label><input type="email" id="nk-email-privat" placeholder="Fx jens@mail.dk"></div>
+    </div>
     <div id="nk-status" style="font-size:0.85rem;min-height:20px;margin-bottom:12px"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn-sm" onclick="document.getElementById('ny-kunde-modal').classList.remove('show')">Annullér</button>
@@ -1814,42 +1823,70 @@ function renderAdminLists(){
   renderAdminList('anlaeg','list-anlaeg');renderAdminList('koeretoej','list-koeretoej');
 }
 
+
+var _nkMode='cvr';
+
+function nkTab(mode){
+  _nkMode=mode;
+  document.getElementById('nk-panel-cvr').style.display=mode==='cvr'?'':'none';
+  document.getElementById('nk-panel-privat').style.display=mode==='privat'?'':'none';
+  document.getElementById('nk-tab-cvr').style.background=mode==='cvr'?'rgba(245,166,35,.12)':'transparent';
+  document.getElementById('nk-tab-cvr').style.color=mode==='cvr'?'var(--accent)':'var(--muted)';
+  document.getElementById('nk-tab-privat').style.background=mode==='privat'?'rgba(245,166,35,.12)':'transparent';
+  document.getElementById('nk-tab-privat').style.color=mode==='privat'?'var(--accent)':'var(--muted)';
+  document.getElementById('nk-status').textContent='';
+}
+
 function openNyKundeModal(){
+  document.getElementById('nk-cvr').value='';
+  document.getElementById('nk-email').value='';
   document.getElementById('nk-navn').value='';
   document.getElementById('nk-adresse').value='';
-  document.getElementById('nk-cvr').value='';
+  document.getElementById('nk-email-privat').value='';
   document.getElementById('nk-status').textContent='';
+  nkTab('cvr');
   document.getElementById('ny-kunde-modal').classList.add('show');
+  setTimeout(function(){document.getElementById('nk-cvr').focus();},100);
 }
 
 async function opretNyKunde(){
-  var navn=document.getElementById('nk-navn').value.trim();
-  var adresse=document.getElementById('nk-adresse').value.trim();
-  var cvr=document.getElementById('nk-cvr').value.trim();
-  var terms=parseInt(document.getElementById('nk-terms').value)||1;
   var statusEl=document.getElementById('nk-status');
-  if(!navn){statusEl.style.color='var(--red)';statusEl.textContent='Kundenavn er påkrævet.';return;}
   statusEl.style.color='var(--muted)';statusEl.textContent='Opretter i e-conomic...';
   try {
-    var payload={name:navn,paymentTerms:{paymentTermsNumber:terms},vatZone:{vatZoneNumber:1},currency:'DKK'};
-    if(adresse)payload.address=adresse;
-    if(cvr)payload.corporateIdentificationNumber=cvr;
+    var payload={paymentTerms:{paymentTermsNumber:1},vatZone:{vatZoneNumber:1},currency:'DKK'};
+    if(_nkMode==='cvr'){
+      var cvr=document.getElementById('nk-cvr').value.trim().replace(/\s/g,'');
+      var email=document.getElementById('nk-email').value.trim();
+      if(cvr.length!==8||isNaN(cvr)){statusEl.style.color='var(--red)';statusEl.textContent='CVR skal være 8 cifre';return;}
+      payload.corporateIdentificationNumber=cvr;
+      payload.customerNumber=parseInt(cvr);
+      payload.name=cvr; // e-conomic overskriver med det rigtige navn fra CVR
+      if(email)payload.email=email;
+    } else {
+      var navn=document.getElementById('nk-navn').value.trim();
+      var adresse=document.getElementById('nk-adresse').value.trim();
+      var emailP=document.getElementById('nk-email-privat').value.trim();
+      if(!navn){statusEl.style.color='var(--red)';statusEl.textContent='Navn er påkrævet';return;}
+      payload.name=navn;
+      if(adresse)payload.address=adresse;
+      if(emailP)payload.email=emailP;
+    }
     var res=await ecoPost('/customers',payload);
     if(!res||!res.customerNumber)throw new Error('Ingen kundenummer returneret');
     var econr=res.customerNumber;
-    statusEl.style.color='var(--green)';statusEl.textContent='✅ Oprettet i e-conomic som nr. '+econr;
-    // Save to VognLog DB
-    var item={navn:navn,adresse:adresse||'',econr:String(econr)};
+    var navn=res.name||payload.name;
+    var adresse=(res.address||'')+(res.city?', '+res.city:'');
+    statusEl.style.color='var(--green)';statusEl.textContent='✅ '+navn+' oprettet (nr. '+econr+')';
+    var item={navn:navn,adresse:adresse,econr:String(econr)};
     var dbRes=await sbInsert('kunder',item);
     if(dbRes&&dbRes[0])item.id=dbRes[0].id;
     adminData.kunder.push(item);
     renderAdminLists();refreshSelects();
-    // Auto-select in form if open
     setTimeout(function(){
       var inp=document.getElementById('f-kunde-inp');
-      if(inp){inp.value=navn;var sel=document.getElementById('f-kunde');if(sel)sel.value=navn;refreshSelects();}
+      if(inp)inp.value=navn;
       document.getElementById('ny-kunde-modal').classList.remove('show');
-    },1200);
+    },1500);
   } catch(e){
     statusEl.style.color='var(--red)';statusEl.textContent='Fejl: '+e.message;
   }
