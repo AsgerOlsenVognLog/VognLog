@@ -168,7 +168,7 @@ tr:hover td{background:rgba(245,166,35,.03);}
   <div class="card">
     <div class="card-title"><span class="step-num">1</span> Kundeinfo og dato</div>
     <div class="g2">
-      <div class="fg"><label>Kunde</label><div class="vl-dd" id="f-kunde-dd"><input type="text" class="vl-dd-input" id="f-kunde-inp" placeholder="Vælg kunde..." autocomplete="off"><div class="vl-dd-list" id="f-kunde-list"></div><select id="f-kunde" style="display:none"><option value="">Vælg kunde...</option></select></div></div>
+      <div class="fg"><label>Kunde <button type="button" class="btn-sm" onclick="openNyKundeModal()" style="font-size:0.72rem;padding:3px 10px;margin-left:8px;vertical-align:middle">+ Ny kunde</button></label><div class="vl-dd" id="f-kunde-dd"><input type="text" class="vl-dd-input" id="f-kunde-inp" placeholder="Vælg kunde..." autocomplete="off"><div class="vl-dd-list" id="f-kunde-list"></div><select id="f-kunde" style="display:none"><option value="">Vælg kunde...</option></select></div></div>
       <div class="fg"><label>Adresse / arbejdssted</label><input type="text" id="f-adresse" placeholder="Fx Industrivej 12, Odense"></div>
     </div>
     <div class="g2">
@@ -328,7 +328,11 @@ tr:hover td{background:rgba(245,166,35,.03);}
         <div class="fg"><label>Adresse</label><input type="text" id="in-kunde-adresse" placeholder="Fx Industrivej 12, Odense"></div>
         <div class="fg"><label>Kundenr. i e-conomic</label><input type="number" id="in-kunde-econr" placeholder="Fx 1001" min="1"></div>
       </div>
-      <button class="btn-sm" onclick="adminAdd('kunder')">+ Tilføj kunde manuelt</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+        <button class="btn-sm" onclick="adminAdd('kunder')">+ Gem kun i VognLog</button>
+        <button class="btn-eco" onclick="adminOpretOgSendKunde()" style="font-size:0.8rem;padding:7px 14px">⚡ Opret i e-conomic + VognLog</button>
+        <span id="opret-kunde-status" style="font-size:0.82rem;color:var(--green);align-self:center"></span>
+      </div>
     </div>
   </div>
   <div class="card" style="padding:0;overflow:hidden">
@@ -447,6 +451,23 @@ tr:hover td{background:rgba(245,166,35,.03);}
         <div class="fg"><label>Varenr. i e-conomic</label><input type="number" id="in-koer-varenr" placeholder="Fx 1" min="1"></div>
       </div>
       <button class="btn-sm" onclick="adminAdd('koeretoej')">+ Tilføj køretøj manuelt</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ny kunde -->
+<div class="overlay" id="ny-kunde-modal">
+  <div class="modal" style="max-width:460px">
+    <h3 style="color:var(--accent)">👤 Opret ny kunde</h3>
+    <p style="color:var(--muted);font-size:0.85rem;margin:8px 0 16px">Kunden oprettes i både VognLog og e-conomic automatisk.</p>
+    <div class="fg" style="margin-bottom:12px"><label>Kundenavn *</label><input type="text" id="nk-navn" placeholder="Fx Hansen Byg A/S"></div>
+    <div class="fg" style="margin-bottom:12px"><label>Adresse</label><input type="text" id="nk-adresse" placeholder="Fx Industrivej 12, Odense"></div>
+    <div class="fg" style="margin-bottom:12px"><label>CVR-nummer (valgfrit)</label><input type="text" id="nk-cvr" placeholder="Fx 12345678"></div>
+    <div class="fg" style="margin-bottom:16px"><label>Betalingsbetingelse (e-conomic nr.)</label><input type="number" id="nk-terms" placeholder="Fx 1" value="1" min="1"></div>
+    <div id="nk-status" style="font-size:0.85rem;min-height:20px;margin-bottom:12px"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn-sm" onclick="document.getElementById('ny-kunde-modal').classList.remove('show')">Annullér</button>
+      <button class="btn-eco" onclick="opretNyKunde()" style="padding:10px 20px">⚡ Opret kunde</button>
     </div>
   </div>
 </div>
@@ -1791,6 +1812,72 @@ function renderAdminLists(){
   renderAdminList('kunder','list-kunder');renderAdminList('chauffoerer','list-chauffoerer');
   renderAdminList('affaldstyper','list-affaldstyper');renderAdminList('leveringstyper','list-leveringstyper');
   renderAdminList('anlaeg','list-anlaeg');renderAdminList('koeretoej','list-koeretoej');
+}
+
+function openNyKundeModal(){
+  document.getElementById('nk-navn').value='';
+  document.getElementById('nk-adresse').value='';
+  document.getElementById('nk-cvr').value='';
+  document.getElementById('nk-status').textContent='';
+  document.getElementById('ny-kunde-modal').classList.add('show');
+}
+
+async function opretNyKunde(){
+  var navn=document.getElementById('nk-navn').value.trim();
+  var adresse=document.getElementById('nk-adresse').value.trim();
+  var cvr=document.getElementById('nk-cvr').value.trim();
+  var terms=parseInt(document.getElementById('nk-terms').value)||1;
+  var statusEl=document.getElementById('nk-status');
+  if(!navn){statusEl.style.color='var(--red)';statusEl.textContent='Kundenavn er påkrævet.';return;}
+  statusEl.style.color='var(--muted)';statusEl.textContent='Opretter i e-conomic...';
+  try {
+    var payload={name:navn,paymentTerms:{paymentTermsNumber:terms},vatZone:{vatZoneNumber:1},currency:'DKK'};
+    if(adresse)payload.address=adresse;
+    if(cvr)payload.corporateIdentificationNumber=cvr;
+    var res=await ecoPost('/customers',payload);
+    if(!res||!res.customerNumber)throw new Error('Ingen kundenummer returneret');
+    var econr=res.customerNumber;
+    statusEl.style.color='var(--green)';statusEl.textContent='✅ Oprettet i e-conomic som nr. '+econr;
+    // Save to VognLog DB
+    var item={navn:navn,adresse:adresse||'',econr:String(econr)};
+    var dbRes=await sbInsert('kunder',item);
+    if(dbRes&&dbRes[0])item.id=dbRes[0].id;
+    adminData.kunder.push(item);
+    renderAdminLists();refreshSelects();
+    // Auto-select in form if open
+    setTimeout(function(){
+      var inp=document.getElementById('f-kunde-inp');
+      if(inp){inp.value=navn;var sel=document.getElementById('f-kunde');if(sel)sel.value=navn;refreshSelects();}
+      document.getElementById('ny-kunde-modal').classList.remove('show');
+    },1200);
+  } catch(e){
+    statusEl.style.color='var(--red)';statusEl.textContent='Fejl: '+e.message;
+  }
+}
+
+async function adminOpretOgSendKunde(){
+  var navn=document.getElementById('in-kunde-navn').value.trim();
+  var adresse=document.getElementById('in-kunde-adresse').value.trim();
+  var statusEl=document.getElementById('opret-kunde-status');
+  if(!navn){alert('Udfyld kundenavn');return;}
+  statusEl.style.color='var(--muted)';statusEl.textContent='Opretter...';
+  try {
+    var payload={name:navn,paymentTerms:{paymentTermsNumber:1},vatZone:{vatZoneNumber:1},currency:'DKK'};
+    if(adresse)payload.address=adresse;
+    var res=await ecoPost('/customers',payload);
+    if(!res||!res.customerNumber)throw new Error('Ingen kundenummer returneret');
+    var econr=res.customerNumber;
+    document.getElementById('in-kunde-econr').value=econr;
+    var item={navn:navn,adresse:adresse||'',econr:String(econr)};
+    var dbRes=await sbInsert('kunder',item);
+    if(dbRes&&dbRes[0])item.id=dbRes[0].id;
+    adminData.kunder.push(item);
+    renderAdminLists();refreshSelects();
+    ['in-kunde-navn','in-kunde-adresse','in-kunde-econr'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+    statusEl.style.color='var(--green)';statusEl.textContent='✅ Oprettet som e-conomic nr. '+econr;
+  } catch(e){
+    statusEl.style.color='var(--red)';statusEl.textContent='Fejl: '+e.message;
+  }
 }
 
 async function syncKunders(){
