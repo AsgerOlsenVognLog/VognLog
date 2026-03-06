@@ -109,6 +109,15 @@ tr:hover td{background:rgba(245,166,35,.03);}
 .acc-body.collapsed{display:none;}
 .acc-arrow.rotated{transform:rotate(-90deg);}
 @media(max-width:620px){.g2,.g3,.stats{grid-template-columns:1fr;}nav{flex-direction:column;gap:12px;}}
+.vl-dd{position:relative;width:100%}
+.vl-dd-input{width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:0.92rem;font-family:'DM Sans',sans-serif;cursor:pointer}
+.vl-dd-input:focus{outline:none;border-color:var(--accent)}
+.vl-dd-list{position:absolute;z-index:999;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:220px;overflow-y:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.vl-dd-list.open{display:block}
+.vl-dd-item{padding:10px 14px;cursor:pointer;font-size:0.88rem;color:var(--text);border-bottom:1px solid var(--border)}
+.vl-dd-item:last-child{border-bottom:none}
+.vl-dd-item:hover,.vl-dd-item.selected{background:rgba(245,166,35,.12);color:var(--accent)}
+.vl-dd-empty{padding:10px 14px;color:var(--muted);font-size:0.85rem;font-style:italic}
 </style>
 </head>
 <body>
@@ -159,12 +168,12 @@ tr:hover td{background:rgba(245,166,35,.03);}
   <div class="card">
     <div class="card-title"><span class="step-num">1</span> Kundeinfo og dato</div>
     <div class="g2">
-      <div class="fg"><label>Kunde</label><input type="text" id="f-kunde-search" placeholder="🔍 Søg kunde..." oninput="filterSelect('f-kunde',this.value)" style="margin-bottom:4px"><select id="f-kunde"><option value="">Vælg kunde...</option></select></div>
+      <div class="fg"><label>Kunde</label><div class="vl-dd" id="f-kunde-dd"><input type="text" class="vl-dd-input" id="f-kunde-inp" placeholder="Vælg kunde..." autocomplete="off"><div class="vl-dd-list" id="f-kunde-list"></div><select id="f-kunde" style="display:none"><option value="">Vælg kunde...</option></select></div></div>
       <div class="fg"><label>Adresse / arbejdssted</label><input type="text" id="f-adresse" placeholder="Fx Industrivej 12, Odense"></div>
     </div>
     <div class="g2">
       <div class="fg"><label>Dato</label><input type="date" id="f-dato"></div>
-      <div class="fg"><label>Chauffør</label><input type="text" id="f-chauffoer-search" placeholder="🔍 Søg chauffør..." oninput="filterSelect('f-chauffoer',this.value)" style="margin-bottom:4px"><select id="f-chauffoer"></select></div>
+      <div class="fg"><label>Chauffør</label><div class="vl-dd" id="f-chauffoer-dd"><input type="text" class="vl-dd-input" id="f-chauffoer-inp" placeholder="Vælg chauffør..." autocomplete="off"><div class="vl-dd-list" id="f-chauffoer-list"></div><select id="f-chauffoer" style="display:none"></select></div></div>
     </div>
     <div class="fg">
       <label>Turfrekvens</label>
@@ -588,17 +597,17 @@ function makeLaesBox(type,idx){
 
   if(type==='afhent'){
     var r1=document.createElement('div');r1.className='g2';r1.style.marginBottom='12px';
-    var wType=mkSearchSelect(type+'-'+idx+'-type','affaldstype',adminData.affaldstyper,function(x){return x.eak;},function(x){return x.navn+' (EAK '+x.eak+')';});
+    var wType=mkDD(type+'-'+idx+'-type','affaldstype',adminData.affaldstyper,function(x){return x.eak;},function(x){return x.navn+' (EAK '+x.eak+')';});
     var selType=wType.getSelect();
-    var wAnlaeg=mkSearchSelect(type+'-'+idx+'-anlaeg','anlæg',adminData.anlaeg,function(x){return x.navn;},function(x){return x.navn+(x.by?' – '+x.by:'');});
+    var wAnlaeg=mkDD(type+'-'+idx+'-anlaeg','anlæg',adminData.anlaeg,function(x){return x.navn;},function(x){return x.navn+(x.by?' – '+x.by:'');});
     var selAnlaeg=wAnlaeg.getSelect();
     r1.appendChild(mkField('Affaldstype',wType));r1.appendChild(mkField('Modtageanlæg',wAnlaeg));
     box.appendChild(r1);
   } else {
     var rm=document.createElement('div');rm.style.marginBottom='12px';
-    var wMat=mkSearchSelect(type+'-'+idx+'-mat','materiale',adminData.leveringstyper,function(x){return x.navn;},function(x){return x.navn;});
+    var wMat=mkDD(type+'-'+idx+'-mat','materiale',adminData.leveringstyper,function(x){return x.navn;},function(x){return x.navn;});
     var selMat=wMat.getSelect();
-    var wGrusgrav=mkSearchSelect(type+'-'+idx+'-levsted','grusgrav',adminData.grusgrave,function(x){return x.navn;},function(x){return x.navn+(x.by?' – '+x.by:'');});
+    var wGrusgrav=mkDD(type+'-'+idx+'-levsted','grusgrav',adminData.grusgrave,function(x){return x.navn;},function(x){return x.navn+(x.by?' – '+x.by:'');});
     var selLevSted=wGrusgrav.getSelect();
     rm.appendChild(mkField('Materiale',wMat));rm.appendChild(mkField('Grusgrav',wGrusgrav));box.appendChild(rm);
   }
@@ -611,7 +620,7 @@ function makeLaesBox(type,idx){
 
   // Køretøj
   var r3=document.createElement('div');r3.style.marginBottom='12px';
-  var wKoer=mkSearchSelect(type+'-'+idx+'-koeretoej','køretøj',adminData.koeretoej,function(x){return x.navn;},function(x){return x.navn+(x.pris>0?' (kr. '+x.pris+'/t)':'');});
+  var wKoer=mkDD(type+'-'+idx+'-koeretoej','køretøj',adminData.koeretoej,function(x){return x.navn;},function(x){return x.navn+(x.pris>0?' (kr. '+x.pris+'/t)':'');});
   var selKoer=wKoer.getSelect();
   r3.appendChild(mkField('Køretøj',wKoer));box.appendChild(r3);
 
@@ -700,30 +709,59 @@ function mkField(lbl,el){
   fg.appendChild(l);fg.appendChild(el);return fg;
 }
 
-// Søgbar select wrapper
-function mkSearchSelect(id,placeholder,items,valFn,lblFn){
-  var wrap=document.createElement('div');wrap.style.cssText='position:relative';
-  var searchIn=document.createElement('input');
-  searchIn.type='text';searchIn.id=id+'-search';searchIn.placeholder='🔍 Søg '+placeholder.toLowerCase()+'...';
-  searchIn.style.cssText='width:100%;box-sizing:border-box;margin-bottom:4px';
-  var sel=document.createElement('select');sel.id=id;sel.size=1;
-  function populate(filter){
-    var prev=sel.value;
-    sel.innerHTML='';
-    var def=document.createElement('option');def.value='';def.textContent='Vælg '+placeholder.toLowerCase()+'...';sel.appendChild(def);
-    var sorted=[].concat(items).sort(function(a,b){return lblFn(a).localeCompare(lblFn(b),'da');});
+// Søgbar dropdown
+function mkDD(id,placeholder,items,valFn,lblFn){
+  var sorted=[].concat(items).sort(function(a,b){return lblFn(a).localeCompare(lblFn(b),'da');});
+  var currentVal='';
+  var wrap=document.createElement('div');wrap.className='vl-dd';
+  var inp=document.createElement('input');inp.type='text';inp.className='vl-dd-input';
+  inp.placeholder='Vælg '+placeholder+'...';inp.autocomplete='off';inp.id=id+'-inp';
+  var list=document.createElement('div');list.className='vl-dd-list';
+  // Hidden select to hold value (for collectLaes compatibility)
+  var sel=document.createElement('select');sel.id=id;sel.style.display='none';
+  var defO=document.createElement('option');defO.value='';sel.appendChild(defO);
+  sorted.forEach(function(item){
+    var o=document.createElement('option');o.value=valFn(item);o.textContent=lblFn(item);sel.appendChild(o);
+  });
+
+  function renderList(filter){
+    list.innerHTML='';
+    var shown=0;
     sorted.forEach(function(item){
       var lbl=lblFn(item);
       if(filter&&lbl.toLowerCase().indexOf(filter.toLowerCase())<0)return;
-      var o=document.createElement('option');o.value=valFn(item);o.textContent=lbl;sel.appendChild(o);
+      var div=document.createElement('div');div.className='vl-dd-item';
+      if(valFn(item)===currentVal)div.classList.add('selected');
+      div.textContent=lbl;
+      div.onmousedown=function(e){e.preventDefault();selectItem(valFn(item),lbl);};
+      list.appendChild(div);shown++;
     });
-    if(prev)sel.value=prev;
+    if(!shown){var em=document.createElement('div');em.className='vl-dd-empty';em.textContent='Ingen resultater';list.appendChild(em);}
   }
-  populate('');
-  searchIn.addEventListener('input',function(){populate(searchIn.value);});
-  wrap.appendChild(searchIn);wrap.appendChild(sel);
-  // expose getValue/setValue on wrap
+
+  function selectItem(val,lbl){
+    currentVal=val;inp.value=lbl;sel.value=val;
+    list.classList.remove('open');
+    inp.dispatchEvent(new Event('change'));
+  }
+
+  inp.addEventListener('focus',function(){renderList('');list.classList.add('open');});
+  inp.addEventListener('input',function(){currentVal='';sel.value='';renderList(inp.value);list.classList.add('open');});
+  inp.addEventListener('blur',function(){
+    setTimeout(function(){list.classList.remove('open');
+      // If typed text doesn't match a selection, clear
+      if(!currentVal)inp.value='';
+    },150);
+  });
+
   wrap.getSelect=function(){return sel;};
+  wrap.setValue=function(val){
+    var found=sorted.find(function(item){return valFn(item)===val;});
+    if(found){currentVal=val;inp.value=lblFn(found);sel.value=val;}
+  };
+
+  wrap.appendChild(inp);wrap.appendChild(list);wrap.appendChild(sel);
+  renderList('');
   return wrap;
 }
 
@@ -745,7 +783,7 @@ function addDiverse(){
 
   // Køretøjsvalg til diverse
   var gk=document.createElement('div');gk.style.marginBottom='0';
-  var wKD=mkSearchSelect('dvs-'+i+'-koeretoej','køretøj',adminData.koeretoej,function(x){return x.navn;},function(x){return x.navn+(x.pris>0?' (kr. '+x.pris+'/t)':'');});
+  var wKD=mkDD('dvs-'+i+'-koeretoej','køretøj',adminData.koeretoej,function(x){return x.navn;},function(x){return x.navn+(x.pris>0?' (kr. '+x.pris+'/t)':'');});
   var selK=wKD.getSelect();
   gk.appendChild(mkField('Køretøj',wKD));box.appendChild(gk);
 
@@ -1922,24 +1960,42 @@ function openEditModal(key,idx){
 
 function closeEditModal(){document.getElementById('edit-modal').classList.remove('show');}
 
-function filterSelect(selId, query){
+function initInlineDD(inpId,listId,selId,items,lblFn,valFn){
+  var inp=document.getElementById(inpId);
+  var list=document.getElementById(listId);
   var sel=document.getElementById(selId);
-  if(!sel)return;
-  var prev=sel.value;
-  Array.from(sel.options).forEach(function(o){
-    if(!o.value){o.style.display='';return;}
-    o.style.display=o.textContent.toLowerCase().indexOf(query.toLowerCase())>=0?'':'none';
-  });
-  if(prev)sel.value=prev;
+  if(!inp||!list||!sel)return;
+  var sorted=[].concat(items).sort(function(a,b){return lblFn(a).localeCompare(lblFn(b),'da');});
+  var curVal='';
+  // rebuild hidden select
+  sel.innerHTML='<option value=""></option>';
+  sorted.forEach(function(item){var o=document.createElement('option');o.value=valFn(item);o.textContent=lblFn(item);sel.appendChild(o);});
+
+  function renderList(filter){
+    list.innerHTML='';
+    var shown=0;
+    sorted.forEach(function(item){
+      var lbl=lblFn(item);
+      if(filter&&lbl.toLowerCase().indexOf(filter.toLowerCase())<0)return;
+      var div=document.createElement('div');div.className='vl-dd-item';
+      if(valFn(item)===curVal)div.classList.add('selected');
+      div.textContent=lbl;
+      div.onmousedown=function(e){e.preventDefault();curVal=valFn(item);inp.value=lbl;sel.value=valFn(item);list.classList.remove('open');};
+      list.appendChild(div);shown++;
+    });
+    if(!shown){var em=document.createElement('div');em.className='vl-dd-empty';em.textContent='Ingen resultater';list.appendChild(em);}
+  }
+  // Remove old listeners by cloning
+  var newInp=inp.cloneNode(true);inp.parentNode.replaceChild(newInp,inp);inp=newInp;
+  inp.addEventListener('focus',function(){renderList('');list.classList.add('open');});
+  inp.addEventListener('input',function(){curVal='';sel.value='';renderList(inp.value);list.classList.add('open');});
+  inp.addEventListener('blur',function(){setTimeout(function(){list.classList.remove('open');if(!curVal)inp.value='';},150);});
+  renderList('');
 }
 
 function refreshSelects(){
-  var kEl=document.getElementById('f-kunde');
-  if(kEl){var kv=kEl.value;kEl.innerHTML='<option value="">Vælg kunde...</option>';
-    [].concat(adminData.kunder).sort(function(a,b){return a.navn.localeCompare(b.navn,'da');}).forEach(function(k){var o=document.createElement('option');o.textContent=k.navn;kEl.appendChild(o);});kEl.value=kv;}
-  var cEl=document.getElementById('f-chauffoer');
-  if(cEl){var cv=cEl.value;cEl.innerHTML='';
-    [].concat(adminData.chauffoerer).sort(function(a,b){return a.navn.localeCompare(b.navn,'da');}).forEach(function(c){var o=document.createElement('option');o.textContent=c.navn;cEl.appendChild(o);});cEl.value=cv;}
+  initInlineDD('f-kunde-inp','f-kunde-list','f-kunde',adminData.kunder,function(k){return k.navn;},function(k){return k.navn;});
+  initInlineDD('f-chauffoer-inp','f-chauffoer-list','f-chauffoer',adminData.chauffoerer,function(c){return c.navn;},function(c){return c.navn;});
 }
 
 function rebuildLaes(){
