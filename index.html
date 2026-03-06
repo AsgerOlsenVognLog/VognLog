@@ -464,8 +464,14 @@ tr:hover td{background:rgba(245,166,35,.03);}
       <button type="button" id="nk-tab-privat" onclick="nkTab('privat')" style="flex:1;padding:9px;background:transparent;border:none;color:var(--muted);font-weight:600;cursor:pointer;font-size:0.85rem">👤 Privatkunde</button>
     </div>
     <div id="nk-panel-cvr">
-      <p style="color:var(--muted);font-size:0.82rem;margin-bottom:14px">e-conomic henter selv navn og adresse fra CVR-nummeret.</p>
-      <div class="fg" style="margin-bottom:12px"><label>CVR-nummer *</label><input type="text" id="nk-cvr" placeholder="Fx 12345678" maxlength="8"></div>
+      <div class="fg" style="margin-bottom:12px">
+        <label>CVR-nummer *</label>
+        <input type="text" id="nk-cvr" placeholder="Fx 12345678" maxlength="8" oninput="if(this.value.replace(/\D/g,'').length===8)cvrOpslag(this.value)">
+      </div>
+      <div id="nk-cvr-preview" style="display:none;background:rgba(62,207,142,.07);border:1px solid rgba(62,207,142,.3);border-radius:8px;padding:12px;margin-bottom:12px">
+        <div style="font-weight:700;font-size:0.95rem" id="nk-cvr-navn"></div>
+        <div style="font-size:0.82rem;color:var(--muted);margin-top:2px" id="nk-cvr-adresse"></div>
+      </div>
       <div class="fg" style="margin-bottom:12px"><label>Email (valgfrit)</label><input type="email" id="nk-email" placeholder="Fx kontakt@firma.dk"></div>
     </div>
     <div id="nk-panel-privat" style="display:none">
@@ -1827,7 +1833,7 @@ function renderAdminLists(){
 var _nkMode='cvr';
 
 function nkTab(mode){
-  _nkMode=mode;
+  _nkMode=mode;_cvrFetched=null;
   document.getElementById('nk-panel-cvr').style.display=mode==='cvr'?'':'none';
   document.getElementById('nk-panel-privat').style.display=mode==='privat'?'':'none';
   document.getElementById('nk-tab-cvr').style.background=mode==='cvr'?'rgba(245,166,35,.12)':'transparent';
@@ -1839,6 +1845,9 @@ function nkTab(mode){
 
 function openNyKundeModal(){
   document.getElementById('nk-cvr').value='';
+  document.getElementById('nk-cvr-preview').style.display='none';
+  document.getElementById('nk-cvr-navn').textContent='';
+  document.getElementById('nk-cvr-adresse').textContent='';
   document.getElementById('nk-email').value='';
   document.getElementById('nk-navn').value='';
   document.getElementById('nk-adresse').value='';
@@ -1847,6 +1856,30 @@ function openNyKundeModal(){
   nkTab('cvr');
   document.getElementById('ny-kunde-modal').classList.add('show');
   setTimeout(function(){document.getElementById('nk-cvr').focus();},100);
+}
+
+var _cvrFetched=null;
+
+async function cvrOpslag(cvr){
+  cvr=cvr.replace(/\D/g,'');
+  var statusEl=document.getElementById('nk-status');
+  var preview=document.getElementById('nk-cvr-preview');
+  _cvrFetched=null;
+  preview.style.display='none';
+  statusEl.style.color='var(--muted)';statusEl.textContent='Henter virksomhedsinfo...';
+  try {
+    var r=await fetch('https://cvrapi.dk/api?search='+cvr+'&country=dk',{headers:{'User-Agent':'VognLog'}});
+    if(!r.ok)throw new Error('CVR ikke fundet');
+    var d=await r.json();
+    if(d.error)throw new Error(d.error);
+    _cvrFetched={navn:d.name||'',adresse:d.address||'',by:d.city||'',postnr:d.zipcode||''};
+    document.getElementById('nk-cvr-navn').textContent=_cvrFetched.navn;
+    document.getElementById('nk-cvr-adresse').textContent=[d.address,d.zipcode,d.city].filter(Boolean).join(', ');
+    preview.style.display='';
+    statusEl.textContent='';
+  } catch(e){
+    statusEl.style.color='var(--red)';statusEl.textContent='CVR ikke fundet – tjek nummeret';
+  }
 }
 
 async function opretNyKunde(){
@@ -1858,9 +1891,12 @@ async function opretNyKunde(){
       var cvr=document.getElementById('nk-cvr').value.trim().replace(/\s/g,'');
       var email=document.getElementById('nk-email').value.trim();
       if(cvr.length!==8||isNaN(cvr)){statusEl.style.color='var(--red)';statusEl.textContent='CVR skal være 8 cifre';return;}
+      if(!_cvrFetched){statusEl.style.color='var(--red)';statusEl.textContent='Indtast CVR-nummer';return;}
+      payload.name=_cvrFetched.navn;
+      payload.address=_cvrFetched.adresse;
+      payload.city=_cvrFetched.by;
+      payload.zip=_cvrFetched.postnr;
       payload.corporateIdentificationNumber=cvr;
-      payload.customerNumber=parseInt(cvr);
-      payload.name=cvr; // e-conomic overskriver med det rigtige navn fra CVR
       if(email)payload.email=email;
     } else {
       var navn=document.getElementById('nk-navn').value.trim();
@@ -1874,8 +1910,8 @@ async function opretNyKunde(){
     var res=await ecoPost('/customers',payload);
     if(!res||!res.customerNumber)throw new Error('Ingen kundenummer returneret');
     var econr=res.customerNumber;
-    var navn=res.name||payload.name;
-    var adresse=(res.address||'')+(res.city?', '+res.city:'');
+    var navn=res.name||payload.name||'';
+    var adresse=payload.address?(payload.address+(payload.zip?' '+payload.zip:'')+(payload.city?' '+payload.city:'')):((res.address||'')+(res.city?', '+res.city:''));
     statusEl.style.color='var(--green)';statusEl.textContent='✅ '+navn+' oprettet (nr. '+econr+')';
     var item={navn:navn,adresse:adresse,econr:String(econr)};
     var dbRes=await sbInsert('kunder',item);
