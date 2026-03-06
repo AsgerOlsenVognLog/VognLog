@@ -1886,7 +1886,7 @@ async function opretNyKunde(){
   var statusEl=document.getElementById('nk-status');
   statusEl.style.color='var(--muted)';statusEl.textContent='Opretter i e-conomic...';
   try {
-    var payload={paymentTerms:{paymentTermsNumber:1},vatZone:{vatZoneNumber:1},currency:'DKK'};
+    var payload={paymentTerms:{paymentTermsNumber:4},vatZone:{vatZoneNumber:1},currency:'DKK',customerGroup:{customerGroupNumber:1}};
     if(_nkMode==='cvr'){
       var cvr=document.getElementById('nk-cvr').value.trim().replace(/\s/g,'');
       var email=document.getElementById('nk-email').value.trim();
@@ -1935,7 +1935,7 @@ async function adminOpretOgSendKunde(){
   if(!navn){alert('Udfyld kundenavn');return;}
   statusEl.style.color='var(--muted)';statusEl.textContent='Opretter...';
   try {
-    var payload={name:navn,paymentTerms:{paymentTermsNumber:1},vatZone:{vatZoneNumber:1},currency:'DKK'};
+    var payload={name:navn,paymentTerms:{paymentTermsNumber:4},vatZone:{vatZoneNumber:1},currency:'DKK',customerGroup:{customerGroupNumber:1}};
     if(adresse)payload.address=adresse;
     var res=await ecoPost('/customers',payload);
     if(!res||!res.customerNumber)throw new Error('Ingen kundenummer returneret');
