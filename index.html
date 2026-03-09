@@ -535,6 +535,10 @@ tr:hover td{background:rgba(245,166,35,.03);}
       </div>
     </div>
     <div id="pm-laes-con"></div>
+    <div style="margin-bottom:12px">
+      <div id="pm-diverse-con"></div>
+      <button type="button" class="btn-sm" onclick="addPmDiverse()" style="font-size:0.78rem;margin-top:4px">+ Tilføj diverse post</button>
+    </div>
     <div class="fg" style="margin-bottom:12px"><label>Besked til chauffør</label>
       <textarea id="pm-besked" rows="2" placeholder="Fx: Husk at møde kl. 7. Ring ved ankomst."></textarea>
     </div>
@@ -2549,6 +2553,8 @@ function openPlanlagtModal(editId){
   document.getElementById('pm-afhent-antal').value='1';
   document.getElementById('pm-lev-antal').value='0';
   document.getElementById('pm-status').textContent='';
+  document.getElementById('pm-diverse-con').innerHTML='';
+  _pmDiverseCount=0;
   document.getElementById('planlagt-modal-title').textContent=editId?'✏️ Rediger planlagt tur':'📋 Opret planlagt tur';
   buildPmLaes();
   document.getElementById('planlagt-modal').classList.add('show');
@@ -2597,6 +2603,42 @@ function buildPmLaes(){
   }
 }
 
+var _pmDiverseCount=0;
+function addPmDiverse(){
+  _pmDiverseCount++;
+  var i=_pmDiverseCount;
+  var box=document.createElement('div');
+  box.style.cssText='background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px';
+  box.id='pm-dvs-'+i;
+  var hdr=document.createElement('div');hdr.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px';
+  var ttl=document.createElement('span');ttl.style.cssText='font-size:0.85rem;font-weight:600;color:var(--muted)';ttl.textContent='Diverse post '+i;
+  var del=document.createElement('button');del.type='button';del.className='btn-del';del.textContent='✕ Fjern';del.style.cssText='padding:3px 8px;font-size:0.75rem';
+  del.onclick=function(){box.remove();};
+  hdr.appendChild(ttl);hdr.appendChild(del);box.appendChild(hdr);
+  var g=document.createElement('div');g.className='g2';
+  var dIn=document.createElement('input');dIn.type='text';dIn.id='pm-dvs-'+i+'-desc';dIn.placeholder='Fx oprydning, ventning...';
+  var tIn=document.createElement('input');tIn.type='number';tIn.id='pm-dvs-'+i+'-timer';tIn.placeholder='0.0';tIn.step='0.5';tIn.min='0';
+  g.appendChild(mkField('Beskrivelse',dIn));g.appendChild(mkField('Antal timer',tIn));box.appendChild(g);
+  var ksel=document.createElement('select');ksel.id='pm-dvs-'+i+'-koer';
+  ksel.innerHTML='<option value="">Vælg køretøj...</option>';
+  adminData.koeretoej.forEach(function(k){var o=document.createElement('option');o.value=k.navn;o.textContent=k.navn;ksel.appendChild(o);});
+  box.appendChild(mkField('Køretøj',ksel));
+  document.getElementById('pm-diverse-con').appendChild(box);
+}
+
+function collectPmDiverse(){
+  var result=[];
+  document.querySelectorAll('[id^="pm-dvs-"]').forEach(function(box){
+    if(!box.id.match(/^pm-dvs-\d+$/))return;
+    var num=box.id.replace('pm-dvs-','');
+    var d=document.getElementById('pm-dvs-'+num+'-desc');
+    var t=document.getElementById('pm-dvs-'+num+'-timer');
+    var k=document.getElementById('pm-dvs-'+num+'-koer');
+    if(d&&d.value.trim())result.push({desc:d.value.trim(),timer:parseFloat(t&&t.value)||0,koeretoej:k?k.value:''});
+  });
+  return result;
+}
+
 async function gemPlanlagtTur(){
   var statusEl=document.getElementById('pm-status');
   var chauffoer=document.getElementById('pm-chauffoer').value;
@@ -2623,6 +2665,7 @@ async function gemPlanlagtTur(){
     levLaes.push({materiale:m?m.value:'',koeretoej:kl?kl.value:''});
   }
   // Find chauffør email
+  var diversePoster=collectPmDiverse();
   var chauffoerObj=adminData.chauffoerer.find(function(c){return c.navn===chauffoer;});
   var chauffoerEmail=chauffoerObj?chauffoerObj.email||'':'';
   statusEl.style.color='var(--muted)';statusEl.textContent='Gemmer...';
@@ -2632,6 +2675,7 @@ async function gemPlanlagtTur(){
     turtype:turtype, besked:besked,
     afhent_laes:JSON.stringify(afhentLaes),
     lev_laes:JSON.stringify(levLaes),
+    diverse_poster:JSON.stringify(diversePoster),
     status:'planlagt'
   };
   var res=await sbInsert('planlagte_ture',item);
@@ -2752,6 +2796,16 @@ function aabneMinTur(planlagtTur){
   },100);
   // Store planlagt tur ID so we can mark it as udfoert on submit
   window._aktivPlanlagtTurId=planlagtTur.id;
+  // Pre-fill diverse
+  var diverse=JSON.parse(planlagtTur.diverse_poster||'[]');
+  document.getElementById('con-diverse').innerHTML='';diverseCount=0;
+  diverse.forEach(function(dv){
+    addDiverse();
+    var d=document.getElementById('dvs-'+diverseCount+'-desc');if(d)d.value=dv.desc||'';
+    var t=document.getElementById('dvs-'+diverseCount+'-timer');if(t)t.value=dv.timer||'';
+    // køretøj select via hidden select
+    var k=document.getElementById('dvs-'+diverseCount+'-koeretoej');if(k&&dv.koeretoej)k.value=dv.koeretoej;
+  });
   // Navigate to driver form
   showTab('driver');
   // Show banner
