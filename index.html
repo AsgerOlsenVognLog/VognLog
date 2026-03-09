@@ -152,6 +152,7 @@ tr:hover td{background:rgba(245,166,35,.03);}
   <div class="logo">Vogn<span>Log</span></div>
   <div class="tabs">
     <button class="tab active" id="tab-driver" onclick="showTab('driver')">🚛 Chauffør</button>
+    <button class="tab" id="tab-mine-ture" onclick="showTab('mine-ture')" style="display:none">📋 Mine ture</button>
     <button class="tab" id="tab-office" onclick="showTab('office')">🏢 Kontor</button>
     <button class="tab" id="tab-waste" onclick="showTab('waste')">📋 Affaldsregister</button>
     <button class="tab" id="tab-admin" onclick="showTab('admin')">⚙️ Admin</button>
@@ -240,6 +241,19 @@ tr:hover td{background:rgba(245,166,35,.03);}
 </div>
 
 <!-- KONTOR -->
+<!-- MINE TURE (chauffør) -->
+<div class="view" id="view-mine-ture">
+  <div class="card">
+    <div class="card-title">📋 Mine planlagte ture</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button class="subtab active" id="mt-tab-idag" onclick="mtTab('idag')" style="font-size:0.82rem">📅 I dag</button>
+      <button class="subtab" id="mt-tab-kommende" onclick="mtTab('kommende')" style="font-size:0.82rem">🗓 Kommende</button>
+    </div>
+    <div id="mt-idag"></div>
+    <div id="mt-kommende" style="display:none"></div>
+  </div>
+</div>
+
 <div class="view" id="view-office">
   <div class="stats">
     <div class="stat"><div class="stat-val" id="s-ture">0</div><div class="stat-lbl">Ture i alt</div></div>
@@ -248,10 +262,21 @@ tr:hover td{background:rgba(245,166,35,.03);}
   </div>
   <div class="subtabs">
     <button class="subtab active" id="subtab-input" onclick="showSubtab('input')">📥 Chauffør input</button>
+    <button class="subtab" id="subtab-planlagt" onclick="showSubtab('planlagt')">📋 Planlagte ture</button>
     <button class="subtab" id="subtab-kontrol" onclick="showSubtab('kontrol')">🔍 Kontrol</button>
     <button class="subtab" id="subtab-faktura" onclick="showSubtab('faktura')">✅ Klar til fakturering</button>
     <button class="subtab" id="subtab-sendt" onclick="showSubtab('sendt')" style="color:var(--green);border-color:rgba(62,207,142,.3)">⚡ Sendt til e-conomic</button>
     <button class="subtab" id="subtab-slettet" onclick="showSubtab('slettet')" style="margin-left:auto;color:var(--red);border-color:rgba(255,92,92,.3)">🗑 Slettet</button>
+  </div>
+
+  <div class="subtab-panel" id="panel-planlagt">
+    <div class="tbl-wrap">
+      <div class="tbl-head">
+        <h3>📋 Planlagte ture</h3>
+        <button class="btn-eco" onclick="openPlanlagtModal()" style="padding:8px 16px">+ Opret planlagt tur</button>
+      </div>
+      <div id="t-planlagt" style="padding:8px"></div>
+    </div>
   </div>
 
   <div class="subtab-panel active" id="panel-input">
@@ -345,6 +370,7 @@ tr:hover td{background:rgba(245,166,35,.03);}
       <div class="g2" style="margin-top:14px">
         <div class="fg"><label>Navn</label><input type="text" id="in-chauf-navn" placeholder="Fx Mikkel Sørensen"></div>
         <div class="fg"><label>Telefon (valgfrit)</label><input type="text" id="in-chauf-tlf" placeholder="Fx 12 34 56 78"></div>
+        <div class="fg"><label>Email (til login)</label><input type="email" id="in-chauf-email" placeholder="Fx mikkel@vognmand.dk"></div>
       </div>
       <button class="btn-sm" onclick="adminAdd('chauffoerer')">+ Tilføj chauffør</button>
     </div>
@@ -463,6 +489,59 @@ tr:hover td{background:rgba(245,166,35,.03);}
         <button class="btn-sm" onclick="adminAdd('koeretoej')">+ Gem kun i VognLog</button>
         <button class="btn-eco" onclick="openNyVareModal('koeretoej')" style="font-size:0.8rem;padding:7px 14px">⚡ Opret i e-conomic + VognLog</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: planlagt tur -->
+<div class="overlay" id="planlagt-modal">
+  <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto">
+    <h3 style="color:var(--accent)" id="planlagt-modal-title">📋 Opret planlagt tur</h3>
+    <div class="g2" style="margin-bottom:12px">
+      <div class="fg" style="margin-bottom:0"><label>Chauffør *</label>
+        <select id="pm-chauffoer"></select>
+      </div>
+      <div class="fg" style="margin-bottom:0"><label>Dato *</label>
+        <input type="date" id="pm-dato">
+      </div>
+    </div>
+    <div class="fg" style="margin-bottom:12px"><label>Kunde</label>
+      <select id="pm-kunde"><option value="">Vælg kunde...</option></select>
+    </div>
+    <div class="fg" style="margin-bottom:12px"><label>Adresse / arbejdssted</label>
+      <input type="text" id="pm-adresse" placeholder="Fx Industrivej 12, Odense">
+    </div>
+    <div class="fg" style="margin-bottom:12px">
+      <label>Turfrekvens</label>
+      <div class="rg" id="pm-rg-turtype">
+        <div class="rb on" onclick="pickRb('pm-rg-turtype',this)">Engangskørsel</div>
+        <div class="rb" onclick="pickRb('pm-rg-turtype',this)">Tilbagevendende</div>
+      </div>
+    </div>
+    <div class="g2" style="margin-bottom:12px">
+      <div class="fg" style="margin-bottom:0"><label>Antal afhentningslæs</label>
+        <select id="pm-afhent-antal" onchange="buildPmLaes()">
+          <option value="0">0 – ingen afhentning</option>
+          <option value="1" selected>1 læs</option>
+          <option value="2">2 læs</option><option value="3">3 læs</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:0"><label>Antal leveringslæs</label>
+        <select id="pm-lev-antal" onchange="buildPmLaes()">
+          <option value="0" selected>0 – ingen levering</option>
+          <option value="1">1 læs</option>
+          <option value="2">2 læs</option><option value="3">3 læs</option>
+        </select>
+      </div>
+    </div>
+    <div id="pm-laes-con"></div>
+    <div class="fg" style="margin-bottom:12px"><label>Besked til chauffør</label>
+      <textarea id="pm-besked" rows="2" placeholder="Fx: Husk at møde kl. 7. Ring ved ankomst."></textarea>
+    </div>
+    <div id="pm-status" style="font-size:0.85rem;min-height:20px;margin-bottom:12px"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn-sm" onclick="document.getElementById('planlagt-modal').classList.remove('show')">Annullér</button>
+      <button class="btn-primary" onclick="gemPlanlagtTur()" style="padding:10px 20px">📋 Gem planlagt tur</button>
     </div>
   </div>
 </div>
@@ -1025,6 +1104,7 @@ async function submitTrip(){
 
   document.getElementById('f-kunde').value='';document.getElementById('f-adresse').value='';
   document.getElementById('f-note').value='';document.getElementById('dd-afhent').value='1';
+  if(window._aktivPlanlagtTurId){markerPlanlagtUdfoert(window._aktivPlanlagtTurId);}
   document.getElementById('dd-lev').value='0';document.getElementById('con-diverse').innerHTML='';
   pendingImages=[];document.getElementById('img-preview').innerHTML='';
   diverseCount=0;buildLaes('afhent',1);buildLaes('lev',0);
@@ -1134,7 +1214,8 @@ function showBilleder(turId){
   document.getElementById('img-modal').classList.add('show');
 }
 
-function renderAllSubtabs(){updateStats();renderSubtab('input');renderSubtab('kontrol');renderSubtab('faktura');renderSubtab('sendt');renderSubtab('slettet');}
+function renderAllSubtabs(){
+  renderPlanlagteKontor();updateStats();renderSubtab('input');renderSubtab('kontrol');renderSubtab('faktura');renderSubtab('sendt');renderSubtab('slettet');}
 
 function renderSubtab(type){
   var filtered=trips.filter(function(t){return t.status===type;});
@@ -1833,7 +1914,7 @@ function exportCSV(){
 // ADMIN
 var adminCfg={
   kunder:{fields:['navn','adresse','econr'],inputs:['in-kunde-navn','in-kunde-adresse','in-kunde-econr']},
-  chauffoerer:{fields:['navn','tlf'],inputs:['in-chauf-navn','in-chauf-tlf']},
+  chauffoerer:{fields:['navn','tlf','email'],inputs:['in-chauf-navn','in-chauf-tlf','in-chauf-email']},
   affaldstyper:{fields:['navn','eak','pris','varenr'],inputs:['in-aff-navn','in-aff-eak','in-aff-pris','in-aff-varenr']},
   leveringstyper:{fields:['navn','pris','varenr'],inputs:['in-lev-navn','in-lev-pris','in-lev-varenr']},
   anlaeg:{fields:['navn','by'],inputs:['in-anlaeg-navn','in-anlaeg-by']},
@@ -2417,17 +2498,17 @@ function applyRole(){
   if(role==='admin'){
     // Show all tabs
     document.getElementById('tab-driver').style.display='';
+    document.getElementById('tab-mine-ture').style.display='none';
     document.getElementById('tab-office').style.display='';
     document.getElementById('tab-waste').style.display='';
     document.getElementById('tab-admin').style.display='';
     showTab('driver');
   } else {
-    // Chauffør: show driver tab + chauffør input subtab only
     document.getElementById('tab-driver').style.display='';
-    document.getElementById('tab-office').style.display='';
+    document.getElementById('tab-mine-ture').style.display='';
+    document.getElementById('tab-office').style.display='none';
     document.getElementById('tab-waste').style.display='none';
     document.getElementById('tab-admin').style.display='none';
-    // When chauffør visits office, only show chauffør input subtab
     showTab('driver');
   }
   loadAppData();
@@ -2441,7 +2522,250 @@ async function loadAppData(){
   if(currentRole==='admin'||currentRole==='kontor'){
     await reloadTure();
     renderAllSubtabs();
+    renderPlanlagteKontor();
+  } else {
+    loadMineTure();
   }
+}
+
+// ============ PLANLAGTE TURE ============
+
+function openPlanlagtModal(editId){
+  // Populate chauffør select
+  var csel=document.getElementById('pm-chauffoer');
+  csel.innerHTML='<option value="">Vælg chauffør...</option>';
+  adminData.chauffoerer.forEach(function(c){
+    var o=document.createElement('option');o.value=c.navn;o.textContent=c.navn;csel.appendChild(o);
+  });
+  // Populate kunde select
+  var ksel=document.getElementById('pm-kunde');
+  ksel.innerHTML='<option value="">Vælg kunde...</option>';
+  [].concat(adminData.kunder).sort(function(a,b){return a.navn.localeCompare(b.navn,'da');}).forEach(function(k){
+    var o=document.createElement('option');o.value=k.navn;o.textContent=k.navn;ksel.appendChild(o);
+  });
+  document.getElementById('pm-dato').value=new Date().toISOString().split('T')[0];
+  document.getElementById('pm-adresse').value='';
+  document.getElementById('pm-besked').value='';
+  document.getElementById('pm-afhent-antal').value='1';
+  document.getElementById('pm-lev-antal').value='0';
+  document.getElementById('pm-status').textContent='';
+  document.getElementById('planlagt-modal-title').textContent=editId?'✏️ Rediger planlagt tur':'📋 Opret planlagt tur';
+  buildPmLaes();
+  document.getElementById('planlagt-modal').classList.add('show');
+}
+
+function buildPmLaes(){
+  var nA=parseInt(document.getElementById('pm-afhent-antal').value)||0;
+  var nL=parseInt(document.getElementById('pm-lev-antal').value)||0;
+  var con=document.getElementById('pm-laes-con');con.innerHTML='';
+  for(var i=1;i<=nA;i++){
+    var div=document.createElement('div');div.style.cssText='background:rgba(245,166,35,.05);border:1px solid rgba(245,166,35,.2);border-radius:10px;padding:14px;margin-bottom:10px';
+    div.innerHTML='<div style="font-weight:700;margin-bottom:10px;color:var(--accent)">Afhentning læs '+i+'</div>';
+    // Affaldstype
+    var sel1=document.createElement('select');sel1.id='pm-a-'+i+'-type';
+    sel1.innerHTML='<option value="">Vælg affaldstype...</option>';
+    adminData.affaldstyper.forEach(function(af){var o=document.createElement('option');o.value=af.eak;o.textContent=af.navn;sel1.appendChild(o);});
+    // Anlæg
+    var sel2=document.createElement('select');sel2.id='pm-a-'+i+'-anlaeg';
+    sel2.innerHTML='<option value="">Vælg anlæg...</option>';
+    adminData.anlaeg.forEach(function(a){var o=document.createElement('option');o.value=a.navn;o.textContent=a.navn+(a.by?' – '+a.by:'');sel2.appendChild(o);});
+    // Køretøj
+    var sel3=document.createElement('select');sel3.id='pm-a-'+i+'-koer';
+    sel3.innerHTML='<option value="">Vælg køretøj...</option>';
+    adminData.koeretoej.forEach(function(k){var o=document.createElement('option');o.value=k.navn;o.textContent=k.navn;sel3.appendChild(o);});
+    var g=document.createElement('div');g.className='g2';g.style.marginBottom='8px';
+    var f1=document.createElement('div');f1.className='fg';f1.style.marginBottom='0';f1.innerHTML='<label>Affaldstype</label>';f1.appendChild(sel1);
+    var f2=document.createElement('div');f2.className='fg';f2.style.marginBottom='0';f2.innerHTML='<label>Modtageanlæg</label>';f2.appendChild(sel2);
+    g.appendChild(f1);g.appendChild(f2);div.appendChild(g);
+    var f3=document.createElement('div');f3.className='fg';f3.innerHTML='<label>Køretøj</label>';f3.appendChild(sel3);div.appendChild(f3);
+    con.appendChild(div);
+  }
+  for(var j=1;j<=nL;j++){
+    var divL=document.createElement('div');divL.style.cssText='background:rgba(129,140,248,.05);border:1px solid rgba(129,140,248,.2);border-radius:10px;padding:14px;margin-bottom:10px';
+    divL.innerHTML='<div style="font-weight:700;margin-bottom:10px;color:var(--blue)">Levering læs '+j+'</div>';
+    var selM=document.createElement('select');selM.id='pm-l-'+j+'-mat';
+    selM.innerHTML='<option value="">Vælg materiale...</option>';
+    adminData.leveringstyper.forEach(function(lv){var o=document.createElement('option');o.value=lv.navn;o.textContent=lv.navn;selM.appendChild(o);});
+    var selK=document.createElement('select');selK.id='pm-l-'+j+'-koer';
+    selK.innerHTML='<option value="">Vælg køretøj...</option>';
+    adminData.koeretoej.forEach(function(k){var o=document.createElement('option');o.value=k.navn;o.textContent=k.navn;selK.appendChild(o);});
+    var gL=document.createElement('div');gL.className='g2';
+    var fM=document.createElement('div');fM.className='fg';fM.style.marginBottom='0';fM.innerHTML='<label>Materiale</label>';fM.appendChild(selM);
+    var fK=document.createElement('div');fK.className='fg';fK.style.marginBottom='0';fK.innerHTML='<label>Køretøj</label>';fK.appendChild(selK);
+    gL.appendChild(fM);gL.appendChild(fK);divL.appendChild(gL);
+    con.appendChild(divL);
+  }
+}
+
+async function gemPlanlagtTur(){
+  var statusEl=document.getElementById('pm-status');
+  var chauffoer=document.getElementById('pm-chauffoer').value;
+  var dato=document.getElementById('pm-dato').value;
+  var kunde=document.getElementById('pm-kunde').value;
+  var adresse=document.getElementById('pm-adresse').value.trim();
+  var besked=document.getElementById('pm-besked').value.trim();
+  var turtype=getRb('pm-rg-turtype');
+  if(!chauffoer||!dato){statusEl.style.color='var(--red)';statusEl.textContent='Vælg chauffør og dato';return;}
+  // Collect læs
+  var nA=parseInt(document.getElementById('pm-afhent-antal').value)||0;
+  var nL=parseInt(document.getElementById('pm-lev-antal').value)||0;
+  var afhentLaes=[];
+  for(var i=1;i<=nA;i++){
+    var t=document.getElementById('pm-a-'+i+'-type');
+    var a=document.getElementById('pm-a-'+i+'-anlaeg');
+    var k=document.getElementById('pm-a-'+i+'-koer');
+    afhentLaes.push({eak:t?t.value:'',anlaeg:a?a.value:'',koeretoej:k?k.value:''});
+  }
+  var levLaes=[];
+  for(var j=1;j<=nL;j++){
+    var m=document.getElementById('pm-l-'+j+'-mat');
+    var kl=document.getElementById('pm-l-'+j+'-koer');
+    levLaes.push({materiale:m?m.value:'',koeretoej:kl?kl.value:''});
+  }
+  // Find chauffør email
+  var chauffoerObj=adminData.chauffoerer.find(function(c){return c.navn===chauffoer;});
+  var chauffoerEmail=chauffoerObj?chauffoerObj.email||'':'';
+  statusEl.style.color='var(--muted)';statusEl.textContent='Gemmer...';
+  var item={
+    chauffoer:chauffoer, chauffoer_email:chauffoerEmail,
+    dato:dato, kunde:kunde||'', adresse:adresse,
+    turtype:turtype, besked:besked,
+    afhent_laes:JSON.stringify(afhentLaes),
+    lev_laes:JSON.stringify(levLaes),
+    status:'planlagt'
+  };
+  var res=await sbInsert('planlagte_ture',item);
+  if(res&&res[0]){
+    statusEl.style.color='var(--green)';statusEl.textContent='✅ Planlagt tur gemt!';
+    setTimeout(function(){
+      document.getElementById('planlagt-modal').classList.remove('show');
+      renderPlanlagteKontor();
+    },1000);
+  } else {
+    statusEl.style.color='var(--red)';statusEl.textContent='Fejl ved gemning';
+  }
+}
+
+async function renderPlanlagteKontor(){
+  var con=document.getElementById('t-planlagt');
+  if(!con)return;
+  con.innerHTML='<div style="color:var(--muted);padding:16px">Henter...</div>';
+  var data=await sbGet('planlagte_ture','order=dato.asc');
+  if(!data||!data.length){con.innerHTML='<div style="color:var(--muted);padding:16px">Ingen planlagte ture endnu.</div>';return;}
+  con.innerHTML='';
+  var today=new Date().toISOString().split('T')[0];
+  data.forEach(function(t){
+    var isPast=t.dato<today;
+    var isToday=t.dato===today;
+    var card=document.createElement('div');
+    card.style.cssText='background:var(--surface);border:1px solid '+(isToday?'var(--accent)':isPast?'var(--border)':'var(--border)')+';border-radius:10px;padding:14px;margin-bottom:10px;opacity:'+(isPast&&t.status==='planlagt'?'0.6':'1');
+    var statusColor=t.status==='udfoert'?'var(--green)':t.status==='planlagt'?'var(--accent)':'var(--muted)';
+    var statusTxt=t.status==='udfoert'?'✅ Udført':t.status==='planlagt'?'📋 Planlagt':'⏳ '+t.status;
+    card.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      +'<div><strong>'+t.dato+'</strong> · <span style="color:var(--blue)">'+t.chauffoer+'</span>'+(isToday?' <span style="background:var(--accent);color:#000;font-size:0.7rem;padding:2px 6px;border-radius:4px;margin-left:4px">I DAG</span>':'')+'</div>'
+      +'<div style="display:flex;gap:6px;align-items:center"><span style="color:'+statusColor+';font-size:0.82rem">'+statusTxt+'</span>'
+      +(t.status==='planlagt'?'<button class="btn-del" onclick="sletPlanlagtTur(&quot;'+t.id+'&quot;)" style="padding:4px 8px;font-size:0.75rem">✕ Slet</button>':'')
+      +'</div></div>'
+      +'<div style="font-size:0.88rem"><strong>'+(t.kunde||'–')+'</strong>'+(t.adresse?' · '+t.adresse:'')+'</div>'
+      +(t.besked?'<div style="font-size:0.78rem;color:var(--muted);margin-top:4px">💬 '+t.besked+'</div>':'');
+    con.appendChild(card);
+  });
+}
+
+async function sletPlanlagtTur(id){
+  if(!confirm('Slet denne planlagte tur?'))return;
+  await sbDelete('planlagte_ture',id);
+  renderPlanlagteKontor();
+}
+
+// MINE TURE (chauffør view)
+var _mtTab='idag';
+function mtTab(tab){
+  _mtTab=tab;
+  document.getElementById('mt-idag').style.display=tab==='idag'?'':'none';
+  document.getElementById('mt-kommende').style.display=tab==='kommende'?'':'none';
+  document.getElementById('mt-tab-idag').classList.toggle('active',tab==='idag');
+  document.getElementById('mt-tab-kommende').classList.toggle('active',tab==='kommende');
+}
+
+async function loadMineTure(){
+  var navn=sessionStorage.getItem('vl_name')||'';
+  var today=new Date().toISOString().split('T')[0];
+  var data=await sbGet('planlagte_ture','chauffoer=eq.'+encodeURIComponent(navn)+'&status=eq.planlagt&order=dato.asc');
+  var idag=(data||[]).filter(function(t){return t.dato===today;});
+  var kommende=(data||[]).filter(function(t){return t.dato>today;});
+  renderMineTureList('mt-idag',idag,'Ingen planlagte ture i dag.');
+  renderMineTureList('mt-kommende',kommende,'Ingen kommende ture.');
+}
+
+function renderMineTureList(containerId,items,emptyMsg){
+  var con=document.getElementById(containerId);
+  if(!con)return;
+  if(!items.length){con.innerHTML='<div style="color:var(--muted);padding:16px;text-align:center">'+emptyMsg+'</div>';return;}
+  con.innerHTML='';
+  items.forEach(function(t){
+    var card=document.createElement('div');
+    card.style.cssText='background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:16px;margin-bottom:12px;cursor:pointer';
+    card.onclick=function(){aabneMinTur(t);};
+    var afhent=JSON.parse(t.afhent_laes||'[]');
+    var lev=JSON.parse(t.lev_laes||'[]');
+    card.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      +'<strong style="font-size:1.05rem">'+t.dato+'</strong>'
+      +'<span style="background:rgba(245,166,35,.15);color:var(--accent);font-size:0.78rem;padding:4px 10px;border-radius:6px">Tryk for at åbne →</span>'
+      +'</div>'
+      +'<div style="font-size:0.92rem"><strong>'+(t.kunde||'Ingen kunde valgt')+'</strong>'+(t.adresse?' · '+t.adresse:'')+'</div>'
+      +(afhent.length?'<div style="font-size:0.78rem;color:var(--muted);margin-top:4px">♻️ '+afhent.length+' afhentningslæs</div>':'')
+      +(lev.length?'<div style="font-size:0.78rem;color:var(--muted)">🪨 '+lev.length+' leveringslæs</div>':'')
+      +(t.besked?'<div style="font-size:0.82rem;color:var(--accent);margin-top:6px;padding:6px 10px;background:rgba(245,166,35,.08);border-radius:6px">💬 '+t.besked+'</div>':'');
+    con.appendChild(card);
+  });
+}
+
+function aabneMinTur(planlagtTur){
+  // Pre-fill the driver form with this planned trip
+  var ksel=document.getElementById('f-kunde');
+  if(ksel&&planlagtTur.kunde){ksel.value=planlagtTur.kunde;var kinp=document.getElementById('f-kunde-inp');if(kinp)kinp.value=planlagtTur.kunde;}
+  var adr=document.getElementById('f-adresse');if(adr)adr.value=planlagtTur.adresse||'';
+  var dato=document.getElementById('f-dato');if(dato)dato.value=planlagtTur.dato;
+  // Turtype
+  var rbtns=document.querySelectorAll('#rg-turtype .rb');
+  rbtns.forEach(function(b){b.classList.remove('on');if(b.textContent.trim()===planlagtTur.turtype)b.classList.add('on');});
+  if(!document.querySelector('#rg-turtype .rb.on'))rbtns[0].classList.add('on');
+  // Læs
+  var afhent=JSON.parse(planlagtTur.afhent_laes||'[]');
+  var lev=JSON.parse(planlagtTur.lev_laes||'[]');
+  document.getElementById('dd-afhent').value=String(afhent.length||0);
+  document.getElementById('dd-lev').value=String(lev.length||0);
+  buildLaes('afhent',afhent.length);
+  buildLaes('lev',lev.length);
+  // Pre-fill afhent dropdowns
+  setTimeout(function(){
+    afhent.forEach(function(al,i){
+      var t=document.getElementById('afhent-'+(i+1)+'-type');if(t&&al.eak)t.value=al.eak;
+      var a=document.getElementById('afhent-'+(i+1)+'-anlaeg');if(a&&al.anlaeg)a.value=al.anlaeg;
+      var k=document.getElementById('afhent-'+(i+1)+'-koeretoej');if(k&&al.koeretoej)k.value=al.koeretoej;
+    });
+    lev.forEach(function(ll,j){
+      var m=document.getElementById('lev-'+(j+1)+'-mat');if(m&&ll.materiale)m.value=ll.materiale;
+      var k=document.getElementById('lev-'+(j+1)+'-koeretoej');if(k&&ll.koeretoej)k.value=ll.koeretoej;
+    });
+  },100);
+  // Store planlagt tur ID so we can mark it as udfoert on submit
+  window._aktivPlanlagtTurId=planlagtTur.id;
+  // Navigate to driver form
+  showTab('driver');
+  // Show banner
+  var b=document.getElementById('banner');
+  b.textContent='📋 Planlagt tur indlæst – ret hvis nødvendigt og indsend';
+  b.style.background='rgba(129,140,248,.2)';b.style.color='var(--blue)';
+  b.classList.add('show');setTimeout(function(){b.classList.remove('show');},4000);
+}
+
+async function markerPlanlagtUdfoert(turId){
+  if(!turId)return;
+  await sbUpdate('planlagte_ture',turId,{status:'udfoert'});
+  window._aktivPlanlagtTurId=null;
+  loadMineTure();
 }
 
 async function init(){
