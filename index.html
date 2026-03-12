@@ -119,6 +119,8 @@ tr:hover td{background:rgba(245,166,35,.03);}
 .vl-dd-item:hover,.vl-dd-item.selected{background:rgba(245,166,35,.12);color:var(--accent)}
 .vl-dd-empty{padding:10px 14px;color:var(--muted);font-size:0.85rem;font-style:italic}
 </style>
+  <!-- SheetJS med style-support til farver og formatering i xlsx -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <!-- LOGIN SCREEN -->
@@ -330,7 +332,7 @@ tr:hover td{background:rgba(245,166,35,.03);}
     <div class="card-title green">📋 Affaldsregister</div>
     <p style="color:var(--muted);font-size:0.88rem;margin-bottom:16px">Viser kun affaldsafhentninger. Eksportér til ADS-format til myndighedsindberetning (Affaldsdatasystemet).</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-      <button class="btn-eco" onclick="exportADS()">⬇ Eksportér til ADS (CSV)</button>
+      <button class="btn-eco" onclick="exportADS()">⬇ Eksportér til ADS (.xlsx – klar til upload)</button>
       <button class="btn-sm" onclick="exportCSV()">⬇ Simpel Excel</button>
     </div>
     <div id="ads-filter" style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
@@ -362,10 +364,19 @@ tr:hover td{background:rgba(245,166,35,.03);}
         <div class="fg"><label>Kundenavn</label><input type="text" id="in-kunde-navn" placeholder="Fx Hansen Byg A/S"></div>
         <div class="fg"><label>Adresse</label><input type="text" id="in-kunde-adresse" placeholder="Fx Industrivej 12, Odense"></div>
       </div>
-      <div class="g3">
+      <div style="margin-bottom:10px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.88rem">
+          <input type="checkbox" id="in-kunde-privat" onchange="togglePrivatKunde(this.checked)" style="width:16px;height:16px;accent-color:var(--accent)">
+          👤 Privatkunde (person – ikke virksomhed)
+        </label>
+      </div>
+      <div class="g3" id="in-kunde-erhverv-felter">
         <div class="fg"><label>CVR-nummer (8 cifre)</label><input type="text" id="in-kunde-cvr" placeholder="Fx 12345678" maxlength="8"></div>
         <div class="fg"><label>P-nummer (10 cifre)</label><input type="text" id="in-kunde-pnr" placeholder="Fx 1234567890" maxlength="10"></div>
         <div class="fg"><label>Kundenr. i e-conomic</label><input type="number" id="in-kunde-econr" placeholder="Fx 1001" min="1"></div>
+      </div>
+      <div class="g2" id="in-kunde-privat-felter" style="display:none">
+        <div class="fg"><label>Kundenr. i e-conomic</label><input type="number" id="in-kunde-econr-privat" placeholder="Fx 1001" min="1"></div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
         <button class="btn-sm" onclick="adminAdd('kunder')">+ Gem kun i VognLog</button>
@@ -1977,133 +1988,186 @@ async function sendTurGruppeToEco(ture, defaults) {
 function exportADS(){
   var fra=document.getElementById('ads-fra').value;
   var til=document.getElementById('ads-til').value;
-  var aar=document.getElementById('ads-aar').value||new Date().getFullYear();
+  var aar=document.getElementById('ads-aar').value||String(new Date().getFullYear());
 
-  // Header rows matching the Indsamler sheet exactly
-  var rows=[
-    [aar,'','Indsamler','8'],  // row 1: Dataår, BatchRef, RapportType, SkabelonVersion
-    [],                         // row 2: blank
-    [],                         // row 3: blank
-    // row 4: column group headers (we skip these, just use col headers)
-    // row 5: blank
-    // row 6: column headers
-    ['Egenreference','ProducentBatchReference','Producenttype','Kommunekode','Privatpersonnavn',
-     'Vejnavn','Husnummer','Postnummer','By','Matrikel',
-     'ProducentCVRnummer','Producentvirksomhedsnavn','ProducentPnummer',
-     'Vægt','Vægtmetode','Vægtmetodetekst','Tørstofprocent',
-     'EAKkode','Affaldsfraktion','Behandling','Slutbehandling','Nyttiggørelse','Bortskaffelsesmetode',
-     'Modtagertype','ModtagerCVRnummer','ModtagerPnummer','Breddegrad','Længdegrad',
-     'TransportørType','TransportørCVRnummer','TransportørPnummer','TransportørLand','TransportørVirksomhed','TransportørEmail',
-     'ForhandlerType','ForhandlerCVRnummer','ForhandlerPnummer','ForhandlerLand','ForhandlerVirksomhed','ForhandlerEmail',
-     'HåndteringsDato']
-  ];
-
-  var dataRows=0;
+  // ── Collect data rows ──────────────────────────────────────────────────
+  var dataRows=[];
   trips.forEach(function(t){
     if(t.status==='slettet')return;
-    if(fra && t.dato<fra)return;
-    if(til && t.dato>til)return;
+    if(fra&&t.dato<fra)return;
+    if(til&&t.dato>til)return;
 
-    // Find kunde data
     var kundeObj=adminData.kunder.find(function(k){return k.navn===t.kunde;})||{};
     var cvr=kundeObj.cvr||'';
     var pnr=kundeObj.pnr||'';
+    var erPrivat=kundeObj.er_privat===true||kundeObj.er_privat==='true';
     var kundeNavn=kundeObj.navn||t.kunde||'';
     var adresse=t.adresse||'';
 
-    // Parse adresse: try to split "Vejnavn Husnr, Postnr By"
     var vejnavn='',husnr='',postnr='',by='';
     var adrMatch=adresse.match(/^(.+?)\s+(\d+\w*),?\s*(\d{4})\s+(.+)$/);
     if(adrMatch){vejnavn=adrMatch[1];husnr=adrMatch[2];postnr=adrMatch[3];by=adrMatch[4];}
     else{vejnavn=adresse;}
 
-    // Determine producer type
-    // If has P-nummer → MedPnummer; if has CVR but no P → OffentligEllerPrivatVirksomhedUdenPnummer; else check if private
-    var prodType='';
-    if(pnr){prodType='OffentligEllerPrivatVirksomhedMedPnummer';}
-    else if(cvr){prodType='OffentligEllerPrivatVirksomhedUdenPnummer';}
-    else{prodType='OffentligEllerPrivatVirksomhedUdenPnummer';}
+    var prodType=erPrivat?'Private':pnr?'WithPNumber':'WithoutPNumber';
 
     (t.afhentLaes||[]).forEach(function(al){
-      if(!al.eak)return; // skip if no EAK
-
-      // Look up affaldstype metadata
+      if(!al.eak)return;
       var affObj=adminData.affaldstyper.find(function(a){return a.eak===al.eak;})||{};
-      var fraktion=affObj.fraktion||affObj.affaldsfraktion||'';
-      var behandling=affObj.behandling||'';
-      var slutbeh=affObj.slutbeh||'';
-      var nyttg=affObj.nyttg||'';
-      var bortsk=affObj.bortsk||'';
-
-      // EgenReference: kundenavn + affaldstype
-      var egenRef=(t.kunde||'')+' - '+(affObj.navn||al.eak||'');
-
-      // Look up anlæg for modtager P-nummer
       var anlaegObj=adminData.anlaeg.find(function(a){return a.navn===al.anlaeg;})||{};
-      var modtagerPnr=anlaegObj.pnr||'';
-      var modtagerCvr=anlaegObj.cvr||'';
-      var modtagerType=modtagerPnr?'MedPnummer':'GeografiskPunkt';
+      var modPnr=anlaegObj.pnr||'';
+      var modCvr=anlaegObj.cvr||'';
 
-      // Format EAK: "17 09 04" → "17 09 04" (keep spaces)
-      var eakFormatted=al.eak||'';
-
-      // Behandling: extract code only "01 - Genanvendelse..." → "1"
-      var behandlingKode=behandling?behandling.split(' - ')[0].replace(/^0/,''):'';
-      var nyttgKode=nyttg?nyttg.split(' - ')[0]:'';
-      var bortskKode=bortsk?bortsk.split(' - ')[0]:'';
-      var fraktionKode=fraktion?fraktion.split(' - ')[0]:fraktion;
-
-      var row=[
-        egenRef,                    // A: Egenreference
-        '',                         // B: ProducentBatchReference
-        prodType,                   // C: Producenttype
-        '',                         // D: Kommunekode
-        '',                         // E: Privatpersonnavn
-        vejnavn,                    // F: Vejnavn
-        husnr,                      // G: Husnummer
-        postnr,                     // H: Postnummer
-        by,                         // I: By
-        '',                         // J: Matrikel
-        pnr?'':cvr,                 // K: ProducentCVRnummer (blank if MedPnummer)
-        pnr?'':kundeNavn,           // L: Producentvirksomhedsnavn (blank if MedPnummer)
-        pnr,                        // M: ProducentPnummer
-        String(al.tons||'').replace('.',','), // N: Vægt (komma som decimal)
-        '1 - Måling',               // O: Vægtmetode (altid måling)
-        '',                         // P: Vægtmetodetekst (blank ved måling)
-        '',                         // Q: Tørstofprocent
-        eakFormatted,               // R: EAKkode
-        fraktionKode,               // S: Affaldsfraktion
-        behandlingKode,             // T: Behandling
-        slutbeh,                    // U: Slutbehandling
-        nyttgKode,                  // V: Nyttiggørelse
-        bortskKode,                 // W: Bortskaffelsesmetode
-        modtagerType,               // X: Modtagertype
-        modtagerCvr,                // Y: ModtagerCVRnummer
-        modtagerPnr,                // Z: ModtagerPnummer
-        '',                         // AA: Breddegrad
-        '',                         // AB: Længdegrad
-        '','','','','','',          // AC-AH: Transportør (tom)
-        '','','','','','',          // AI-AN: Forhandler (tom)
-        t.dato                      // AO: HåndteringsDato
-      ];
-      rows.push(row);
-      dataRows++;
+      dataRows.push([
+        (t.kunde||'')+' - '+(affObj.navn||al.eak||''), // A Egenreference
+        '',                                              // B ProducentBatchRef
+        prodType,                                        // C Producenttype
+        '',                                              // D Kommunekode
+        erPrivat?kundeNavn:'',                           // E Privatpersonnavn
+        vejnavn,                                         // F Vejnavn
+        husnr,                                           // G Husnummer
+        postnr,                                          // H Postnummer
+        by,                                              // I By
+        '',                                              // J Matrikel
+        erPrivat||pnr?'':cvr,                            // K CVR
+        erPrivat||pnr?'':kundeNavn,                      // L Virksomhedsnavn
+        erPrivat?'':pnr,                                 // M Pnummer
+        al.tons!=null?String(al.tons).replace('.',','):'', // N Vægt
+        '1 - Måling',                                    // O Vægtmetode
+        '',                                              // P Vægtmetodetekst
+        '',                                              // Q Tørstofprocent
+        al.eak||'',                                      // R EAKkode
+        affObj.fraktion||'',                             // S Affaldsfraktion
+        affObj.behandling||'',                           // T Behandling
+        affObj.slutbeh||'',                              // U Slutbehandling
+        affObj.nyttg||'',                                // V Nyttiggørelse
+        affObj.bortsk||'',                               // W Bortskaffelse
+        modPnr?'WithPNumber':'GeografiskPunkt',          // X Modtagertype
+        modCvr,                                          // Y ModtagerCVR
+        modPnr,                                          // Z ModtagerPnummer
+        '','',                                           // AA-AB Koordinater
+        '','','','','','',                               // AC-AH Transportør
+        '','','','','','',                               // AI-AN Forhandler
+        t.dato||''                                       // AO HåndteringsDato
+      ]);
     });
   });
 
-  if(dataRows===0){alert('Ingen afhentninger at eksportere i den valgte periode.');return;}
+  if(dataRows.length===0){alert('Ingen afhentninger at eksportere i den valgte periode.');return;}
 
-  var csv=rows.map(function(r){
-    return r.map(function(v){
-      v=String(v===null||v===undefined?'':v);
-      if(v.indexOf(';')>-1||v.indexOf('"')>-1)v='"'+v.replace(/"/g,'""')+'"';
-      return v;
-    }).join(';');
-  }).join('\r\n');
+  // ── SheetJS XLSX builder ───────────────────────────────────────────────
+  if(typeof XLSX==='undefined'){
+    alert('SheetJS er ikke indlæst endnu – prøv igen om et øjeblik.');return;
+  }
 
-  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
-  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='affaldsregistrering_'+aar+'_Indsamler.csv';a.click();
+  var wb=XLSX.utils.book_new();
+  var ws={};
+  var R=0; // 0-indexed row
+
+  // ── Helpers ──────────────────────────────────────────────────────────
+  var BG_DARK='0E4743', BG_MID='003734', BG_TRANS='285856';
+  function hdrStyle(bg){
+    return {font:{name:'Calibri',sz:11,color:{rgb:'FFFFFF'},bold:false},
+            fill:{fgColor:{rgb:bg}},
+            alignment:{horizontal:'center',vertical:'center',wrapText:true}};
+  }
+  function dataStyle(){
+    return {font:{name:'Calibri',sz:11},alignment:{horizontal:'left',vertical:'center'}};
+  }
+  function setCell(ws,r,c,v,s){
+    var addr=XLSX.utils.encode_cell({r:r,c:c});
+    ws[addr]={v:v,t:typeof v==='number'?'n':'s',s:s||dataStyle()};
+  }
+
+  // ── Row 1: metadata ───────────────────────────────────────────────────
+  var metaH=['Dataår','BatchReference','RapportType','SkabelonVersion'];
+  var metaV=[aar,'','Indsamler','8'];
+  metaH.forEach(function(h,i){setCell(ws,0,i,h,hdrStyle(BG_DARK));});
+  metaV.forEach(function(v,i){setCell(ws,1,i,v,dataStyle());});
+  R=2;
+
+  // ── Row 4: group headers (row index 3) ────────────────────────────────
+  R=3;
+  var groups=[
+    [0,0,'ReporterEgenReference',BG_DARK],
+    [1,1,'ProducentansvarligId',BG_DARK],
+    [2,12,'Affaldsproducent',BG_DARK],
+    [13,16,'Affaldsmængde',BG_DARK],
+    [17,18,'Affaldsinformation',BG_DARK],
+    [19,22,'BehandlingAfAffald',BG_DARK],
+    [23,27,'Affaldsmodtager',BG_DARK],
+    [28,39,'Farligt Affald / Transportør / Forhandler',BG_DARK],
+    [40,40,'Håndteringsdato',BG_DARK]
+  ];
+  groups.forEach(function(g){setCell(ws,R,g[0],g[2],hdrStyle(g[3]));});
+
+  // ── Row 5: sub-group headers (row index 4) ────────────────────────────
+  R=4;
+  var subs=[
+    [5,8,'Adresse',BG_MID],
+    [28,33,'Affaldstransportør',BG_TRANS],
+    [34,39,'Forhandler-mægler',BG_MID]
+  ];
+  subs.forEach(function(g){setCell(ws,R,g[0],g[2],hdrStyle(g[3]));});
+
+  // ── Row 6: column headers (row index 5) ───────────────────────────────
+  R=5;
+  var colDefs=[
+    ['Egenreference',BG_DARK],['Producentreference',BG_DARK],
+    ['Producenttype',BG_DARK],['Kommunekode',BG_DARK],['Privatpersonnavn',BG_DARK],
+    ['Vejnavn',BG_MID],['Husnummer',BG_MID],['Postnummer',BG_MID],['By',BG_MID],
+    ['Matrikel',BG_DARK],['ProducentCVRnummer',BG_DARK],['Producentvirksomhedsnavn',BG_DARK],
+    ['ProducentPnummer',BG_DARK],['Vægt',BG_DARK],['Vægtmetode',BG_DARK],
+    ['Vægtmetodetekst',BG_DARK],['Tørstofprocent',BG_DARK],['EAKkode',BG_DARK],
+    ['Affaldsfraktion',BG_DARK],['Behandling',BG_DARK],['Slutbehandling',BG_DARK],
+    ['Nyttiggørelse',BG_DARK],['Bortskaffelsesmetode',BG_DARK],
+    ['Modtagertype',BG_DARK],['ModtagerCVRnummer',BG_DARK],['ModtagerPnummer',BG_DARK],
+    ['Breddegrad',BG_DARK],['Længdegrad',BG_DARK],
+    ['TransportørType',BG_TRANS],['TransportørCVRnummer',BG_TRANS],
+    ['TransportørPnummer',BG_TRANS],['TransportørLand',BG_TRANS],
+    ['TransportørVirksomhed',BG_TRANS],['TransportørEmail',BG_TRANS],
+    ['ForhandlerType',BG_MID],['ForhandlerCVRnummer',BG_MID],
+    ['ForhandlerPnummer',BG_MID],['ForhandlerLand',BG_MID],
+    ['ForhandlerVirksomhed',BG_MID],['ForhandlerEmail',BG_MID],
+    ['HåndteringsDato',BG_DARK]
+  ];
+  colDefs.forEach(function(cd,i){setCell(ws,R,i,cd[0],hdrStyle(cd[1]));});
+
+  // ── Merges ────────────────────────────────────────────────────────────
+  ws['!merges']=[
+    // Row 4 (index 3) – group headers
+    {s:{r:3,c:2}, e:{r:3,c:12}},  // Affaldsproducent C-M
+    {s:{r:3,c:13},e:{r:3,c:16}},  // Affaldsmængde N-Q
+    {s:{r:3,c:17},e:{r:3,c:18}},  // Affaldsinformation R-S
+    {s:{r:3,c:19},e:{r:3,c:22}},  // BehandlingAfAffald T-W
+    {s:{r:3,c:23},e:{r:3,c:27}},  // Affaldsmodtager X-AB
+    {s:{r:3,c:28},e:{r:3,c:39}},  // Farligt/Transp/Forh AC-AN
+    // Row 5 (index 4) – sub-group headers
+    {s:{r:4,c:5}, e:{r:4,c:8}},   // Adresse F-I
+    {s:{r:4,c:28},e:{r:4,c:33}},  // Transportør AC-AH
+    {s:{r:4,c:34},e:{r:4,c:39}}   // Forhandler AI-AN
+  ];
+
+  // ── Data rows ─────────────────────────────────────────────────────────
+  dataRows.forEach(function(row,ri){
+    row.forEach(function(val,ci){
+      setCell(ws,6+ri,ci,val,dataStyle());
+    });
+  });
+
+  // ── Sheet range ───────────────────────────────────────────────────────
+  ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:6+dataRows.length-1,c:40}});
+
+  // ── Column widths (from original template) ────────────────────────────
+  ws['!cols']=[
+    {wch:29},{wch:26},{wch:15},{wch:17},{wch:19},{wch:11},{wch:14},{wch:17},{wch:11},{wch:11},
+    {wch:24},{wch:28},{wch:21},{wch:11},{wch:15},{wch:20},{wch:17},{wch:12},{wch:18},{wch:13},
+    {wch:16},{wch:15},{wch:23},{wch:17},{wch:23},{wch:21},{wch:13},{wch:14},{wch:23},{wch:25},
+    {wch:23},{wch:17},{wch:25},{wch:19},{wch:24},{wch:24},{wch:21},{wch:17},{wch:24},{wch:18},{wch:21}
+  ];
+
+  XLSX.utils.book_append_sheet(wb,ws,'Indsamler');
+  XLSX.writeFile(wb,'ADS_Indsamler_'+aar+'.xlsx');
 }
 
 function exportCSV(){
@@ -2122,7 +2186,7 @@ function exportCSV(){
 
 // ADMIN
 var adminCfg={
-  kunder:{fields:['navn','adresse','cvr','pnr','econr'],inputs:['in-kunde-navn','in-kunde-adresse','in-kunde-cvr','in-kunde-pnr','in-kunde-econr']},
+  kunder:{fields:['navn','adresse','cvr','pnr','er_privat','econr'],inputs:['in-kunde-navn','in-kunde-adresse','in-kunde-cvr','in-kunde-pnr','in-kunde-privat','in-kunde-econr']},
   chauffoerer:{fields:['navn','tlf','email'],inputs:['in-chauf-navn','in-chauf-tlf','in-chauf-email']},
   affaldstyper:{fields:['navn','eak','fraktion','behandling','slutbeh','nyttg','bortsk','pris','varenr'],inputs:['in-aff-navn','in-aff-eak','in-aff-fraktion','in-aff-behandling','in-aff-slutbeh','in-aff-nyttg','in-aff-bortsk','in-aff-pris','in-aff-varenr']},
   leveringstyper:{fields:['navn','pris','varenr'],inputs:['in-lev-navn','in-lev-pris','in-lev-varenr']},
@@ -2135,9 +2199,26 @@ var adminCfg={
 async function adminAdd(key){
   var cfg=adminCfg[key];var item={};
   for(var j=0;j<cfg.fields.length;j++){
-    var el=document.getElementById(cfg.inputs[j]);var val=el?el.value.trim():'';
-    if(!val&&j===0){alert('Udfyld mindst det første felt.');return;}
-    item[cfg.fields[j]]=val||'';if(el)el.value='';
+    var field=cfg.fields[j];var inputId=cfg.inputs[j];
+    var el=document.getElementById(inputId);
+    if(!el)continue;
+    var val;
+    if(el.type==='checkbox'){
+      val=el.checked;
+    } else {
+      val=el.value.trim();
+      if(!val&&j===0){alert('Udfyld mindst det første felt.');return;}
+    }
+    item[field]=val||'';
+    if(el.type!=='checkbox')el.value='';
+    else el.checked=false;
+  }
+  // Privat kunde: hent econr fra privat felt i stedet
+  if(key==='kunder'&&item.er_privat===true){
+    var privEconr=document.getElementById('in-kunde-econr-privat');
+    if(privEconr){item.econr=privEconr.value.trim();privEconr.value='';}
+    item.cvr='';item.pnr='';
+    togglePrivatKunde(false);
   }
   if(item.pris!==undefined)item.pris=parseFloat(item.pris)||0;
   var res=await sbInsert(key,item);if(res&&res[0])item.id=res[0].id;
@@ -2165,6 +2246,7 @@ function renderAdminList(key,containerId){
       else if(f==='tlf'){if(v)parts.push('tlf: '+v);}
       else if(f==='varenr'){if(v)parts.push('varenr: '+v);}
       else if(f==='econr'){if(v)parts.push('e-conomic nr: '+v);}
+      else if(f==='er_privat'){if(v===true||v==='true')parts.push('👤 Privatkunde');}
       else if(v)parts.push(v);
     }
     var row=document.createElement('div');row.className='admin-item';
@@ -2177,6 +2259,15 @@ function renderAdminList(key,containerId){
     (function(k,i){delBtn.onclick=function(){openSletModal(k,i,items[i]?items[i].navn:'');};})(key,idx);
     btns.appendChild(editBtn);btns.appendChild(delBtn);
     row.appendChild(txt);row.appendChild(btns);container.appendChild(row);
+  }
+}
+
+function togglePrivatKunde(isPrivat){
+  document.getElementById('in-kunde-erhverv-felter').style.display=isPrivat?'none':'';
+  document.getElementById('in-kunde-privat-felter').style.display=isPrivat?'':'none';
+  if(isPrivat){
+    document.getElementById('in-kunde-cvr').value='';
+    document.getElementById('in-kunde-pnr').value='';
   }
 }
 
