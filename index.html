@@ -244,13 +244,15 @@ tr:hover td{background:rgba(245,166,35,.03);}
 <!-- MINE TURE (chauffør) -->
 <div class="view" id="view-mine-ture">
   <div class="card">
-    <div class="card-title">📋 Mine planlagte ture</div>
-    <div style="display:flex;gap:8px;margin-bottom:16px">
-      <button class="subtab active" id="mt-tab-idag" onclick="mtTab('idag')" style="font-size:0.82rem">📅 I dag</button>
+    <div class="card-title">📋 Mine ture</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="subtab active" id="mt-tab-idag" onclick="mtTab('idag')" style="font-size:0.82rem">📅 Planlagt i dag</button>
       <button class="subtab" id="mt-tab-kommende" onclick="mtTab('kommende')" style="font-size:0.82rem">🗓 Kommende</button>
+      <button class="subtab" id="mt-tab-indsendt" onclick="mtTab('indsendt')" style="font-size:0.82rem">📤 Mine indsendte</button>
     </div>
     <div id="mt-idag"></div>
     <div id="mt-kommende" style="display:none"></div>
+    <div id="mt-indsendt" style="display:none"></div>
   </div>
 </div>
 
@@ -326,8 +328,16 @@ tr:hover td{background:rgba(245,166,35,.03);}
 <div class="view" id="view-waste">
   <div class="card">
     <div class="card-title green">📋 Affaldsregister</div>
-    <p style="color:var(--muted);font-size:0.88rem;margin-bottom:16px">Viser kun affaldsafhentninger. Eksportér til Excel til myndighedsindberetning.</p>
-    <button class="btn-eco" onclick="exportCSV()">⬇ Eksportér til Excel / CSV</button>
+    <p style="color:var(--muted);font-size:0.88rem;margin-bottom:16px">Viser kun affaldsafhentninger. Eksportér til ADS-format til myndighedsindberetning (Affaldsdatasystemet).</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <button class="btn-eco" onclick="exportADS()">⬇ Eksportér til ADS (CSV)</button>
+      <button class="btn-sm" onclick="exportCSV()">⬇ Simpel Excel</button>
+    </div>
+    <div id="ads-filter" style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+      <div class="fg" style="margin-bottom:0;min-width:140px"><label>Fra dato</label><input type="date" id="ads-fra"></div>
+      <div class="fg" style="margin-bottom:0;min-width:140px"><label>Til dato</label><input type="date" id="ads-til"></div>
+      <div class="fg" style="margin-bottom:0"><label>DataÅr</label><input type="text" id="ads-aar" placeholder="2024" style="width:80px"></div>
+    </div>
   </div>
   <div class="tbl-wrap">
     <table><thead><tr><th>Dato</th><th>Kunde</th><th>Adresse</th><th>EAK-kode</th><th>Affaldstype</th><th>Tons</th><th>Modtageanlæg</th><th>By</th><th>Chauffør</th><th></th></tr></thead>
@@ -348,9 +358,13 @@ tr:hover td{background:rgba(245,166,35,.03);}
       </div>
       <div id="sync-kunder-status" style="font-size:0.82rem;color:var(--green);margin-bottom:8px;min-height:18px"></div>
       <div id="list-kunder"></div>
-      <div class="g3" style="margin-top:14px">
+      <div class="g2" style="margin-top:14px">
         <div class="fg"><label>Kundenavn</label><input type="text" id="in-kunde-navn" placeholder="Fx Hansen Byg A/S"></div>
         <div class="fg"><label>Adresse</label><input type="text" id="in-kunde-adresse" placeholder="Fx Industrivej 12, Odense"></div>
+      </div>
+      <div class="g3">
+        <div class="fg"><label>CVR-nummer (8 cifre)</label><input type="text" id="in-kunde-cvr" placeholder="Fx 12345678" maxlength="8"></div>
+        <div class="fg"><label>P-nummer (10 cifre)</label><input type="text" id="in-kunde-pnr" placeholder="Fx 1234567890" maxlength="10"></div>
         <div class="fg"><label>Kundenr. i e-conomic</label><input type="number" id="in-kunde-econr" placeholder="Fx 1001" min="1"></div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
@@ -389,6 +403,61 @@ tr:hover td{background:rgba(245,166,35,.03);}
       <div class="g2" style="margin-top:14px">
         <div class="fg"><label>Navn</label><input type="text" id="in-aff-navn" placeholder="Fx Byggeaffald, blandet"></div>
         <div class="fg"><label>EAK-kode</label><input type="text" id="in-aff-eak" placeholder="Fx 17 01 07"></div>
+      </div>
+      <div class="g2">
+        <div class="fg"><label>Affaldsfraktion (H/E-kode)</label><input type="text" id="in-aff-fraktion" placeholder="Fx H24 eller E24"></div>
+        <div class="fg"><label>Behandling (01/02/03/04/10/11)</label>
+          <select id="in-aff-behandling"><option value="">Vælg...</option>
+            <option>01 - Genanvendelse (herunder forbehandling)</option>
+            <option>02 - Forbrænding (herunder forbehandling)</option>
+            <option>03 - Deponering (herunder forbehandling)</option>
+            <option>04 - Særlig behandling (herunder forbehandling)</option>
+            <option>10 - Forberedelse med henblik på genbrug (herunder forbehandling)</option>
+            <option>11 - Anden endelig materialenyttiggørelse</option>
+          </select>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="fg"><label>Slutbehandlet? (Ja/Nej)</label>
+          <select id="in-aff-slutbeh"><option value="">Vælg...</option><option>Ja</option><option>Nej</option></select>
+        </div>
+        <div class="fg"><label>Nyttiggørelse (R-kode)</label>
+          <select id="in-aff-nyttg"><option value="">Ingen / vælg...</option>
+            <option>R1 - Hovedanvendelse som brændsel eller andre midler til energifremstilling</option>
+            <option>R2 - Genvinding eller regenerering af opløsningsmidler</option>
+            <option>R3 - Genanvendelse eller genvinding af organiske stoffer</option>
+            <option>R4 - Genanvendelse eller genvinding af metaller og metalforbindelser</option>
+            <option>R5 - Genanvendelse eller genvinding af andre uorganiske stoffer</option>
+            <option>R6 - Regenerering af syrer eller baser</option>
+            <option>R7 - Nyttiggørelse af komponenter til forureningsbekæmpelse</option>
+            <option>R8 - Nyttiggørelse af komponenter fra katalysatorer</option>
+            <option>R9 - Regenerering og anden genbrug af olie</option>
+            <option>R10 - Spredning på landet med positive virkninger</option>
+            <option>R11 - Anvendelse af affald fra R1-R10</option>
+            <option>R12 - Udveksling af affald med henblik på R1-R11</option>
+            <option>R13 - Oplagring forud for R1-R12</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Bortskaffelsesmetode (D-kode)</label>
+        <select id="in-aff-bortsk"><option value="">Ingen / vælg...</option>
+          <option>D1 - Deponering på eller i jorden</option>
+          <option>D2 - Behandling i jordmiljø</option>
+          <option>D3 - Indsprøjtning i dybtliggende formationer</option>
+          <option>D4 - Deponering i overfladevand</option>
+          <option>D5 - Deponering på specielt indrettet deponeringsanlæg</option>
+          <option>D6 - Udledning i vandmiljøet</option>
+          <option>D7 - Dumpning i havet</option>
+          <option>D8 - Biologisk behandling</option>
+          <option>D9 - Fysisk-kemisk behandling</option>
+          <option>D10 - Forbrænding på landjorden</option>
+          <option>D11 - Forbrænding på havet</option>
+          <option>D12 - Permanent oplagring</option>
+          <option>D13 - Blanding forud for D1-D12</option>
+          <option>D14 - Rekonditionering forud for D1-D13</option>
+          <option>D15 - Oplagring forud for D1-D14</option>
+        </select>
       </div>
       <div class="g2">
         <div class="fg"><label>Pris pr. ton (kr.)</label><input type="number" id="in-aff-pris" placeholder="0" min="0"></div>
@@ -432,6 +501,10 @@ tr:hover td{background:rgba(245,166,35,.03);}
       <div class="g2" style="margin-top:14px">
         <div class="fg"><label>Navn</label><input type="text" id="in-anlaeg-navn" placeholder="Fx Odense Kraftvarme A/S"></div>
         <div class="fg"><label>By</label><input type="text" id="in-anlaeg-by" placeholder="Fx Odense"></div>
+      </div>
+      <div class="g2">
+        <div class="fg"><label>CVR-nummer</label><input type="text" id="in-anlaeg-cvr" placeholder="Fx 12345678" maxlength="8"></div>
+        <div class="fg"><label>P-nummer</label><input type="text" id="in-anlaeg-pnr" placeholder="Fx 1234567890" maxlength="10"></div>
       </div>
       <button class="btn-sm" onclick="adminAdd('anlaeg')">+ Tilføj anlæg</button>
     </div>
@@ -1901,6 +1974,138 @@ async function sendTurGruppeToEco(ture, defaults) {
   return result !== null;
 }
 
+function exportADS(){
+  var fra=document.getElementById('ads-fra').value;
+  var til=document.getElementById('ads-til').value;
+  var aar=document.getElementById('ads-aar').value||new Date().getFullYear();
+
+  // Header rows matching the Indsamler sheet exactly
+  var rows=[
+    [aar,'','Indsamler','8'],  // row 1: Dataår, BatchRef, RapportType, SkabelonVersion
+    [],                         // row 2: blank
+    [],                         // row 3: blank
+    // row 4: column group headers (we skip these, just use col headers)
+    // row 5: blank
+    // row 6: column headers
+    ['Egenreference','ProducentBatchReference','Producenttype','Kommunekode','Privatpersonnavn',
+     'Vejnavn','Husnummer','Postnummer','By','Matrikel',
+     'ProducentCVRnummer','Producentvirksomhedsnavn','ProducentPnummer',
+     'Vægt','Vægtmetode','Vægtmetodetekst','Tørstofprocent',
+     'EAKkode','Affaldsfraktion','Behandling','Slutbehandling','Nyttiggørelse','Bortskaffelsesmetode',
+     'Modtagertype','ModtagerCVRnummer','ModtagerPnummer','Breddegrad','Længdegrad',
+     'TransportørType','TransportørCVRnummer','TransportørPnummer','TransportørLand','TransportørVirksomhed','TransportørEmail',
+     'ForhandlerType','ForhandlerCVRnummer','ForhandlerPnummer','ForhandlerLand','ForhandlerVirksomhed','ForhandlerEmail',
+     'HåndteringsDato']
+  ];
+
+  var dataRows=0;
+  trips.forEach(function(t){
+    if(t.status==='slettet')return;
+    if(fra && t.dato<fra)return;
+    if(til && t.dato>til)return;
+
+    // Find kunde data
+    var kundeObj=adminData.kunder.find(function(k){return k.navn===t.kunde;})||{};
+    var cvr=kundeObj.cvr||'';
+    var pnr=kundeObj.pnr||'';
+    var kundeNavn=kundeObj.navn||t.kunde||'';
+    var adresse=t.adresse||'';
+
+    // Parse adresse: try to split "Vejnavn Husnr, Postnr By"
+    var vejnavn='',husnr='',postnr='',by='';
+    var adrMatch=adresse.match(/^(.+?)\s+(\d+\w*),?\s*(\d{4})\s+(.+)$/);
+    if(adrMatch){vejnavn=adrMatch[1];husnr=adrMatch[2];postnr=adrMatch[3];by=adrMatch[4];}
+    else{vejnavn=adresse;}
+
+    // Determine producer type
+    // If has P-nummer → MedPnummer; if has CVR but no P → OffentligEllerPrivatVirksomhedUdenPnummer; else check if private
+    var prodType='';
+    if(pnr){prodType='OffentligEllerPrivatVirksomhedMedPnummer';}
+    else if(cvr){prodType='OffentligEllerPrivatVirksomhedUdenPnummer';}
+    else{prodType='OffentligEllerPrivatVirksomhedUdenPnummer';}
+
+    (t.afhentLaes||[]).forEach(function(al){
+      if(!al.eak)return; // skip if no EAK
+
+      // Look up affaldstype metadata
+      var affObj=adminData.affaldstyper.find(function(a){return a.eak===al.eak;})||{};
+      var fraktion=affObj.fraktion||affObj.affaldsfraktion||'';
+      var behandling=affObj.behandling||'';
+      var slutbeh=affObj.slutbeh||'';
+      var nyttg=affObj.nyttg||'';
+      var bortsk=affObj.bortsk||'';
+
+      // EgenReference: kundenavn + affaldstype
+      var egenRef=(t.kunde||'')+' - '+(affObj.navn||al.eak||'');
+
+      // Look up anlæg for modtager P-nummer
+      var anlaegObj=adminData.anlaeg.find(function(a){return a.navn===al.anlaeg;})||{};
+      var modtagerPnr=anlaegObj.pnr||'';
+      var modtagerCvr=anlaegObj.cvr||'';
+      var modtagerType=modtagerPnr?'MedPnummer':'GeografiskPunkt';
+
+      // Format EAK: "17 09 04" → "17 09 04" (keep spaces)
+      var eakFormatted=al.eak||'';
+
+      // Behandling: extract code only "01 - Genanvendelse..." → "1"
+      var behandlingKode=behandling?behandling.split(' - ')[0].replace(/^0/,''):'';
+      var nyttgKode=nyttg?nyttg.split(' - ')[0]:'';
+      var bortskKode=bortsk?bortsk.split(' - ')[0]:'';
+      var fraktionKode=fraktion?fraktion.split(' - ')[0]:fraktion;
+
+      var row=[
+        egenRef,                    // A: Egenreference
+        '',                         // B: ProducentBatchReference
+        prodType,                   // C: Producenttype
+        '',                         // D: Kommunekode
+        '',                         // E: Privatpersonnavn
+        vejnavn,                    // F: Vejnavn
+        husnr,                      // G: Husnummer
+        postnr,                     // H: Postnummer
+        by,                         // I: By
+        '',                         // J: Matrikel
+        pnr?'':cvr,                 // K: ProducentCVRnummer (blank if MedPnummer)
+        pnr?'':kundeNavn,           // L: Producentvirksomhedsnavn (blank if MedPnummer)
+        pnr,                        // M: ProducentPnummer
+        String(al.tons||'').replace('.',','), // N: Vægt (komma som decimal)
+        '1 - Måling',               // O: Vægtmetode (altid måling)
+        '',                         // P: Vægtmetodetekst (blank ved måling)
+        '',                         // Q: Tørstofprocent
+        eakFormatted,               // R: EAKkode
+        fraktionKode,               // S: Affaldsfraktion
+        behandlingKode,             // T: Behandling
+        slutbeh,                    // U: Slutbehandling
+        nyttgKode,                  // V: Nyttiggørelse
+        bortskKode,                 // W: Bortskaffelsesmetode
+        modtagerType,               // X: Modtagertype
+        modtagerCvr,                // Y: ModtagerCVRnummer
+        modtagerPnr,                // Z: ModtagerPnummer
+        '',                         // AA: Breddegrad
+        '',                         // AB: Længdegrad
+        '','','','','','',          // AC-AH: Transportør (tom)
+        '','','','','','',          // AI-AN: Forhandler (tom)
+        t.dato                      // AO: HåndteringsDato
+      ];
+      rows.push(row);
+      dataRows++;
+    });
+  });
+
+  if(dataRows===0){alert('Ingen afhentninger at eksportere i den valgte periode.');return;}
+
+  var csv=rows.map(function(r){
+    return r.map(function(v){
+      v=String(v===null||v===undefined?'':v);
+      if(v.indexOf(';')>-1||v.indexOf('"')>-1)v='"'+v.replace(/"/g,'""')+'"';
+      return v;
+    }).join(';');
+  }).join('\r\n');
+
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='affaldsregistrering_'+aar+'_Indsamler.csv';a.click();
+}
+
 function exportCSV(){
   var rows=[['Dato','Kunde','Adresse','EAK-kode','Affaldstype','Tons','Modtageanlæg','By','Chauffør']];
   trips.forEach(function(t){
@@ -1917,11 +2122,11 @@ function exportCSV(){
 
 // ADMIN
 var adminCfg={
-  kunder:{fields:['navn','adresse','econr'],inputs:['in-kunde-navn','in-kunde-adresse','in-kunde-econr']},
+  kunder:{fields:['navn','adresse','cvr','pnr','econr'],inputs:['in-kunde-navn','in-kunde-adresse','in-kunde-cvr','in-kunde-pnr','in-kunde-econr']},
   chauffoerer:{fields:['navn','tlf','email'],inputs:['in-chauf-navn','in-chauf-tlf','in-chauf-email']},
-  affaldstyper:{fields:['navn','eak','pris','varenr'],inputs:['in-aff-navn','in-aff-eak','in-aff-pris','in-aff-varenr']},
+  affaldstyper:{fields:['navn','eak','fraktion','behandling','slutbeh','nyttg','bortsk','pris','varenr'],inputs:['in-aff-navn','in-aff-eak','in-aff-fraktion','in-aff-behandling','in-aff-slutbeh','in-aff-nyttg','in-aff-bortsk','in-aff-pris','in-aff-varenr']},
   leveringstyper:{fields:['navn','pris','varenr'],inputs:['in-lev-navn','in-lev-pris','in-lev-varenr']},
-  anlaeg:{fields:['navn','by'],inputs:['in-anlaeg-navn','in-anlaeg-by']},
+  anlaeg:{fields:['navn','by','cvr','pnr'],inputs:['in-anlaeg-navn','in-anlaeg-by','in-anlaeg-cvr','in-anlaeg-pnr']},
   koeretoej:{fields:['navn','pris','varenr'],inputs:['in-koer-navn','in-koer-pris','in-koer-varenr']},
   tillaegstyper:{fields:['navn','pris','varenr'],inputs:['in-till-navn','in-till-pris','in-till-varenr']},
   grusgrave:{fields:['navn','by'],inputs:['in-grusgrav-navn','in-grusgrav-by']}
@@ -2520,6 +2725,10 @@ function applyRole(){
 
 async function loadAppData(){
   document.getElementById('f-dato').value=new Date().toISOString().split('T')[0];
+  // Init ADS year field
+  var adsAar=document.getElementById('ads-aar');if(adsAar)adsAar.value=new Date().getFullYear();
+  var adsFra=document.getElementById('ads-fra');if(adsFra)adsFra.value=new Date().getFullYear()+'-01-01';
+  var adsTil=document.getElementById('ads-til');if(adsTil)adsTil.value=new Date().toISOString().split('T')[0];
   var tables=['kunder','chauffoerer','affaldstyper','leveringstyper','anlaeg','koeretoej','tillaegstyper','grusgrave'];
   for(var i=0;i<tables.length;i++){var d=await sbGet(tables[i],'order=oprettet.asc');if(d)adminData[tables[i]]=d;}
   refreshSelects();buildLaes('afhent',1);buildLaes('lev',0);
@@ -2728,8 +2937,11 @@ function mtTab(tab){
   _mtTab=tab;
   document.getElementById('mt-idag').style.display=tab==='idag'?'':'none';
   document.getElementById('mt-kommende').style.display=tab==='kommende'?'':'none';
+  document.getElementById('mt-indsendt').style.display=tab==='indsendt'?'':'none';
   document.getElementById('mt-tab-idag').classList.toggle('active',tab==='idag');
   document.getElementById('mt-tab-kommende').classList.toggle('active',tab==='kommende');
+  document.getElementById('mt-tab-indsendt').classList.toggle('active',tab==='indsendt');
+  if(tab==='indsendt')loadMineIndsendte();
 }
 
 async function loadMineTure(){
@@ -2740,6 +2952,59 @@ async function loadMineTure(){
   var kommende=(data||[]).filter(function(t){return t.dato>today;});
   renderMineTureList('mt-idag',idag,'Ingen planlagte ture i dag.');
   renderMineTureList('mt-kommende',kommende,'Ingen kommende ture.');
+}
+
+async function loadMineIndsendte(){
+  var navn=sessionStorage.getItem('vl_name')||'';
+  var con=document.getElementById('mt-indsendt');
+  con.innerHTML='<div style="color:var(--muted);padding:16px;text-align:center">Henter...</div>';
+  var data=await sbGet('ture','chauffoer=eq.'+encodeURIComponent(navn)+'&order=dato.desc&limit=50');
+  if(!data||!data.length){con.innerHTML='<div style="color:var(--muted);padding:16px;text-align:center">Ingen indsendte ture endnu.</div>';return;}
+  con.innerHTML='';
+  data.forEach(function(t){
+    if(t.status==='slettet')return;
+    var statusMap={
+      'input':  {txt:'📥 Hos kontor – afventer kontrol', color:'var(--muted)',    showSend:true},
+      'kontrol':{txt:'🔍 Til kontrol',                  color:'var(--blue)',     showSend:false},
+      'faktura':{txt:'✅ Klar til fakturering',          color:'var(--green)',    showSend:false},
+      'sendt':  {txt:'⚡ Sendt til e-conomic',           color:'var(--green)',    showSend:false}
+    };
+    var sm=statusMap[t.status]||{txt:t.status,color:'var(--muted)',showSend:false};
+    var card=document.createElement('div');
+    card.style.cssText='background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px';
+    var headerDiv=document.createElement('div');
+    headerDiv.style.cssText='display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:6px';
+    var leftDiv=document.createElement('div');
+    leftDiv.innerHTML='<span style="font-family:DM Mono,monospace;font-size:0.8rem;color:var(--muted)">'+t.dato+'</span>'
+      +'<strong style="margin-left:10px">'+t.kunde+'</strong>'
+      +(t.adresse?'<div style="font-size:0.82rem;color:var(--muted);margin-top:2px">'+t.adresse+'</div>':'');
+    var rightDiv=document.createElement('div');
+    rightDiv.style.cssText='display:flex;gap:6px;align-items:center';
+    var badge=document.createElement('span');
+    badge.style.cssText='font-size:0.78rem;color:'+sm.color;
+    badge.textContent=sm.txt;
+    rightDiv.appendChild(badge);
+    if(sm.showSend){
+      var sendBtn=document.createElement('button');
+      sendBtn.className='btn-kontrol';
+      sendBtn.style.cssText='padding:5px 12px;font-size:0.78rem';
+      sendBtn.textContent='→ Send til kontrol';
+      (function(id){sendBtn.onclick=async function(){
+        sendBtn.disabled=true;sendBtn.textContent='Sender...';
+        await setStatus(id,'kontrol');
+        await loadMineIndsendte();
+      };})(t.id);
+      rightDiv.appendChild(sendBtn);
+    }
+    headerDiv.appendChild(leftDiv);headerDiv.appendChild(rightDiv);
+    card.appendChild(headerDiv);
+    // Tons/timer summary
+    var meta=document.createElement('div');
+    meta.style.cssText='font-size:0.82rem;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap';
+    meta.innerHTML='<span>🏋️ '+t.tons.toFixed(1)+' t</span><span>⏱ '+t.timer+' t</span>';
+    card.appendChild(meta);
+    con.appendChild(card);
+  });
 }
 
 function renderMineTureList(containerId,items,emptyMsg){
